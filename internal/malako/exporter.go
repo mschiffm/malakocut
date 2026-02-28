@@ -2,6 +2,7 @@ package malako
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -87,6 +88,9 @@ func (m *Malakocut) flushBuffer() {
 }
 
 func (m *Malakocut) uploadToSecOps(events [][]byte) error {
+	if m.debugLogger != nil {
+		m.debugLogger.Printf("uploadToSecOps: starting upload of %d events", len(events))
+	}
 	url := fmt.Sprintf("%s?customer_id=%s&log_type=%s", m.Config.SecopsURL, m.Config.CustomerID, m.Config.LogType)
 
 	var combined bytes.Buffer
@@ -103,34 +107,59 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 	maxRetries := 5
 	backoff := 1 * time.Second
 
-	var lastErr error
 	for i := 0; i < maxRetries; i++ {
-		req, err := http.NewRequestWithContext(m.ctx, "POST", url, bytes.NewReader(payload))
+		if m.debugLogger != nil {
+			m.debugLogger.Printf("uploadToSecOps: attempt %d/%d...", i+1, maxRetries)
+		}
+
+		ctx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payload))
 		if err != nil {
+			cancel()
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 		req.Header.Set("Content-Type", "application/json")
 
+		if m.debugLogger != nil {
+			m.debugLogger.Println("uploadToSecOps: sending HTTP request...")
+		}
+
 		resp, err := m.client.Do(req)
 		if err != nil {
-			lastErr = err
+			cancel()
 			if m.debugLogger != nil {
-				m.debugLogger.Printf("Exporter connection error (retry %d/%d): %v", i+1, maxRetries, err)
+				m.debugLogger.Printf("uploadToSecOps: request failed: %v", err)
 			}
-		} else {
-			if resp.StatusCode == http.StatusOK {
-				resp.Body.Close()
-				log.Printf("[*] Flushed %d events to SecOps", len(events))
-				return nil
+			select {
+			case <-m.ctx.Done():
+				return m.ctx.Err()
+			case <-time.After(backoff):
+				backoff *= 2
+				continue
 			}
+		}
 
-			body, _ := io.ReadAll(resp.Body)
+		if m.debugLogger != nil {
+			m.debugLogger.Printf("uploadToSecOps: got response status %d", resp.StatusCode)
+		}
+
+		if resp.StatusCode == http.StatusOK {
 			resp.Body.Close()
-			lastErr = fmt.Errorf("SecOps API error (%d): %s", resp.StatusCode, string(body))
+			cancel()
+			log.Printf("[*] Flushed %d events to SecOps", len(events))
+			return nil
+		}
 
-			if resp.StatusCode != 429 && resp.StatusCode < 500 {
-				return fmt.Errorf("non-retryable error: %w", lastErr)
-			}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		cancel()
+		
+		if m.debugLogger != nil {
+			m.debugLogger.Printf("uploadToSecOps: API error body: %s", string(body))
+		}
+
+		if resp.StatusCode != 429 && resp.StatusCode < 500 {
+			return fmt.Errorf("non-retryable error (%d): %s", resp.StatusCode, string(body))
 		}
 
 		select {
@@ -140,6 +169,5 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 			backoff *= 2
 		}
 	}
-
-	return fmt.Errorf("exhausted retries: %w", lastErr)
+	return fmt.Errorf("exhausted retries")
 }
