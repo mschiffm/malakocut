@@ -23,6 +23,10 @@ func main() {
 	// Sensitive values from Environment
 	customerID := os.Getenv("CHRONICLE_CUSTOMER_ID")
 	apiToken := os.Getenv("MALAKO_API_TOKEN")
+	logType := os.Getenv("CHRONICLE_LOG_TYPE")
+	if logType == "" {
+		logType = "MALAKOCUT_CUSTOM"
+	}
 
 	if customerID == "" || apiToken == "" {
 		log.Println("[!] Warning: CHRONICLE_CUSTOMER_ID or MALAKO_API_TOKEN not set in environment")
@@ -44,6 +48,7 @@ func main() {
 		APIToken:      apiToken,
 		SecopsURL:     SECOPS_URL,
 		CustomerID:    customerID,
+		LogType:       logType,
 		PcapRetention: 48 * time.Hour,
 		PcapMaxSize:   500 * 1024 * 1024,
 		BatchSize:     100,

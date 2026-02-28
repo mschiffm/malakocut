@@ -67,6 +67,7 @@ type Config struct {
 	APIToken       string
 	SecopsURL      string
 	CustomerID     string
+	LogType        string
 	PcapRetention  time.Duration
 	PcapMaxSize    int64
 	BatchSize      int

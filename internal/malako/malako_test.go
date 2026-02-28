@@ -62,7 +62,7 @@ func TestProcessPacketAndBuffer(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "malakocut-test-*")
 	defer os.RemoveAll(tmpDir)
 
-	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}})
+	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}, LogType: "TEST"})
 	defer m.Close()
 
 	eth := &layers.Ethernet{
@@ -98,7 +98,7 @@ func TestUploadRetryLogic(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	tripper := &retryMockTripper{statuses: []int{http.StatusTooManyRequests, http.StatusOK}}
-	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{Transport: tripper}})
+	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{Transport: tripper}, LogType: "TEST"})
 	defer m.Close()
 
 	err := m.uploadToSecOps([][]byte{[]byte(`{"test":1}`)})
@@ -110,7 +110,7 @@ func TestSecOpsParserCompatibility(t *testing.T) {
 	tmpDir, _ := os.MkdirTemp("", "malakocut-parser-*")
 	defer os.RemoveAll(tmpDir)
 
-	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}})
+	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}, LogType: "TEST"})
 	defer m.Close()
 
 	event := FlowMetadata{

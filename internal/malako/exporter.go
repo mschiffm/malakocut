@@ -79,7 +79,7 @@ func (m *Malakocut) flushBuffer() {
 }
 
 func (m *Malakocut) uploadToSecOps(events [][]byte) error {
-	url := fmt.Sprintf("%s?customer_id=%s&log_type=MALAKOCUT_NETWORK", m.Config.SecopsURL, m.Config.CustomerID)
+	url := fmt.Sprintf("%s?customer_id=%s&log_type=%s", m.Config.SecopsURL, m.Config.CustomerID, m.Config.LogType)
 
 	var combined bytes.Buffer
 	combined.WriteString(`{"entries":[`)
