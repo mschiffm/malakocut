@@ -1,6 +1,9 @@
 # Malakocut: Home NDR Sniffer for Google SecOps
 
-Malakocut is a high-performance Network Detection and Response (NDR) agent designed for home laboratory environments. It captures traffic from a SPAN/Mirror port, aggregates it into stateful flow telemetry for Google SecOps (Chronicle), and maintains a rolling 48-hour raw PCAP journal for forensic investigation.
+![Malakocut Logo](malakocut-logo.png)
+
+Malakocut is a high-performance Network Detection and Response (NDR) agent designed for home laboratory environments.
+ It captures traffic from a SPAN/Mirror port, aggregates it into stateful flow telemetry for Google SecOps (Chronicle), and maintains a rolling 48-hour raw PCAP journal for forensic investigation.
 
 ## Core Architecture
 
