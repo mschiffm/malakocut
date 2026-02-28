@@ -52,9 +52,9 @@ func main() {
 		PcapRetention: 48 * time.Hour,
 		PcapMaxSize:   500 * 1024 * 1024,
 		BatchSize:     100,
-		FlushInterval: 5 * time.Second,
-		IdleTimeout:   60 * time.Second,
-		ActiveTimeout: 120 * time.Second,
+		FlushInterval: 2 * time.Second,
+		IdleTimeout:   15 * time.Second,
+		ActiveTimeout: 30 * time.Second,
 		AuthScope:     "https://www.googleapis.com/auth/chronicle",
 		APIPort:       API_PORT,
 	}
