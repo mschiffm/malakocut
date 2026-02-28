@@ -21,6 +21,10 @@ func (m *Malakocut) StartExporter() {
 		case <-m.ctx.Done():
 			return
 		case <-ticker.C:
+			if m.debugLogger != nil {
+				// Don't log this too often, only every 5 ticks
+				m.debugLogger.Println("Exporter heartbeat: checking buffer...")
+			}
 			m.flushBuffer()
 		}
 	}
@@ -66,6 +70,10 @@ func (m *Malakocut) flushBuffer() {
 
 	if err != nil || len(events) == 0 {
 		return
+	}
+
+	if m.debugLogger != nil {
+		m.debugLogger.Printf("Exporter: found %d events in buffer, uploading...", len(events))
 	}
 
 	if err := m.uploadToSecOps(events); err == nil {
