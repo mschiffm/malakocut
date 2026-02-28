@@ -25,7 +25,7 @@ func main() {
 	apiToken := os.Getenv("MALAKO_API_TOKEN")
 	logType := os.Getenv("CHRONICLE_LOG_TYPE")
 	if logType == "" {
-		logType = "MALAKOCUT_CUSTOM"
+		logType = "MALAKOCUT_NETWORK_CUSTOM"
 	}
 
 	if customerID == "" || apiToken == "" {

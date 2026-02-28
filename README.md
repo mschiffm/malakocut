@@ -82,8 +82,8 @@ For security, Malakocut requires the following environment variables to be set:
 # Your Google SecOps Customer ID (UUID)
 export CHRONICLE_CUSTOMER_ID="your-uuid-here"
 
-# The Log Type / Ingestion Label (Default: MALAKOCUT_CUSTOM)
-export CHRONICLE_LOG_TYPE="MALAKOCUT_CUSTOM"
+# The Log Type / Ingestion Label (Default: MALAKOCUT_NETWORK_CUSTOM)
+export CHRONICLE_LOG_TYPE="MALAKOCUT_NETWORK_CUSTOM"
 
 # A secure token for the local Forensic API
 export MALAKO_API_TOKEN="your-secure-auth-token"
