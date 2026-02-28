@@ -1,5 +1,5 @@
 # Binaries
-malakocut
+/malakocut
 *.exe
 *.exe~
 *.dll
