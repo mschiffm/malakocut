@@ -29,7 +29,7 @@ func main() {
 	}
 
 	if customerID == "" || apiToken == "" {
-		log.Println("[!] Warning: CHRONICLE_CUSTOMER_ID or MALAKO_API_TOKEN not set in environment")
+		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and MALAKO_API_TOKEN must be set in environment")
 	}
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
