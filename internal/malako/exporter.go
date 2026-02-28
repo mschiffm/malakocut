@@ -114,6 +114,9 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 		resp, err := m.client.Do(req)
 		if err != nil {
 			lastErr = err
+			if m.debugLogger != nil {
+				m.debugLogger.Printf("Exporter connection error (retry %d/%d): %v", i+1, maxRetries, err)
+			}
 		} else {
 			if resp.StatusCode == http.StatusOK {
 				resp.Body.Close()
