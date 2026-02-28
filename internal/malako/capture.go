@@ -223,6 +223,16 @@ func (m *Malakocut) evictExpiredFlows() {
 
 		if record.Finished || idle || active {
 			record.Meta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
+			if m.debugLogger != nil {
+				reason := "finished"
+				if idle {
+					reason = "idle"
+				} else if active {
+					reason = "active"
+				}
+				m.debugLogger.Printf("EVICT FLOW [%s] reason: %s, packets: %d",
+					record.Meta.FlowID, reason, record.Meta.Packets)
+			}
 			m.bufferEvent(record.Meta)
 			delete(m.flows, id)
 		}
