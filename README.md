@@ -75,21 +75,28 @@ The JSON emitted to SecOps is designed for the `unstructuredlogentries:batchCrea
 
 ## Running Malakocut
 
-### 1. Configure Environment Variables
+### 1. Configure Environment Variables (Mandatory)
 For security, Malakocut requires the following environment variables to be set:
 
 ```bash
 # Your Google SecOps Customer ID (UUID)
 export CHRONICLE_CUSTOMER_ID="your-uuid-here"
 
-# The Log Type / Ingestion Label (Default: MALAKOCUT_NETWORK_CUSTOM)
-export CHRONICLE_LOG_TYPE="MALAKOCUT_NETWORK_CUSTOM"
+# The Ingestion API URL (Must match your region)
+# Default for US: https://grasp.backstory.chronicle.security/v1/ingestion:sendUnstructuredEvents
+export CHRONICLE_INGESTION_URL="https://grasp.backstory.chronicle.security/v1/ingestion:sendUnstructuredEvents"
 
 # A secure token for the local Forensic API
 export MALAKO_API_TOKEN="your-secure-auth-token"
 ```
 
-### 2. Command Line Flags
+### 2. Optional Configuration
+```bash
+# The Log Type / Ingestion Label (Default: MALAKOCUT_NETWORK_CUSTOM)
+export CHRONICLE_LOG_TYPE="MALAKOCUT_NETWORK_CUSTOM"
+```
+
+### 3. Command Line Flags
 - `-interface`: Specify the sniffing interface (default: `enp3s0`).
 - `-debug`: Enable live flow summaries to stdout and log to `malakocut_debug.log`.
 - `-pcap-filter`: Override the default BPF filter for journaling.

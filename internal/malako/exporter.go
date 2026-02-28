@@ -91,7 +91,7 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 	if m.debugLogger != nil {
 		m.debugLogger.Printf("uploadToSecOps: starting upload of %d events", len(events))
 	}
-	url := fmt.Sprintf("%s?customer_id=%s&log_type=%s", m.Config.SecopsURL, m.Config.CustomerID, m.Config.LogType)
+	url := fmt.Sprintf("%s?customer_id=%s&log_type=%s", m.Config.IngestionURL, m.Config.CustomerID, m.Config.LogType)
 
 	var combined bytes.Buffer
 	combined.WriteString(`{"entries":[`)

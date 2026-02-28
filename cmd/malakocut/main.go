@@ -15,7 +15,6 @@ const (
 	DEFAULT_INTERFACE = "enp3s0"
 	BUFFER_PATH       = "/var/lib/malakocut/buffer"
 	PCAP_DIR          = "/var/lib/malakocut/pcap"
-	SECOPS_URL        = "https://backstory.chronicle.security/v1/unstructuredlogentries:batchCreate"
 	API_PORT          = ":8080"
 )
 
@@ -24,12 +23,14 @@ func main() {
 	customerID := os.Getenv("CHRONICLE_CUSTOMER_ID")
 	apiToken := os.Getenv("MALAKO_API_TOKEN")
 	logType := os.Getenv("CHRONICLE_LOG_TYPE")
+	ingestionURL := os.Getenv("CHRONICLE_INGESTION_URL")
+
 	if logType == "" {
 		logType = "MALAKOCUT_NETWORK_CUSTOM"
 	}
 
-	if customerID == "" || apiToken == "" {
-		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and MALAKO_API_TOKEN must be set in environment")
+	if customerID == "" || apiToken == "" || ingestionURL == "" {
+		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID, CHRONICLE_INGESTION_URL, and MALAKO_API_TOKEN must be set in environment")
 	}
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
@@ -46,7 +47,7 @@ func main() {
 		PcapFilter:    *filterFlag,
 		DebugEnable:   *debugFlag,
 		APIToken:      apiToken,
-		SecopsURL:     SECOPS_URL,
+		IngestionURL:  ingestionURL,
 		CustomerID:    customerID,
 		LogType:       logType,
 		PcapRetention: 48 * time.Hour,

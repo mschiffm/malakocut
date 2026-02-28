@@ -65,7 +65,7 @@ type Config struct {
 	HTTPClient     *http.Client
 	DebugEnable    bool
 	APIToken       string
-	SecopsURL      string
+	IngestionURL   string
 	CustomerID     string
 	LogType        string
 	PcapRetention  time.Duration
