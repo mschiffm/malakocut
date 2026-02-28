@@ -1,0 +1,134 @@
+package malako
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/dgraph-io/badger/v4"
+	"github.com/segmentio/encoding/json"
+)
+
+func (m *Malakocut) StartExporter() {
+	ticker := time.NewTicker(m.Config.FlushInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-m.ctx.Done():
+			return
+		case <-ticker.C:
+			m.flushBuffer()
+		}
+	}
+}
+
+func (m *Malakocut) bufferEvent(event FlowMetadata) {
+	data, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("[!] JSON Marshal error: %v", err)
+		return
+	}
+
+	err = m.db.Update(func(txn *badger.Txn) error {
+		key := []byte(fmt.Sprintf("evt_%d_%s", time.Now().UnixNano(), event.SrcIP))
+		return txn.Set(key, data)
+	})
+	if err != nil {
+		log.Printf("[!] Buffer write error: %v", err)
+	}
+}
+
+func (m *Malakocut) flushBuffer() {
+	var events [][]byte
+	var keys [][]byte
+
+	err := m.db.View(func(txn *badger.Txn) error {
+		opts := badger.DefaultIteratorOptions
+		opts.PrefetchValues = true
+		it := txn.NewIterator(opts)
+		defer it.Close()
+
+		for it.Rewind(); it.Valid() && len(events) < m.Config.BatchSize; it.Next() {
+			item := it.Item()
+			val, err := item.ValueCopy(nil)
+			if err != nil {
+				continue
+			}
+			events = append(events, val)
+			keys = append(keys, item.KeyCopy(nil))
+		}
+		return nil
+	})
+
+	if err != nil || len(events) == 0 {
+		return
+	}
+
+	if err := m.uploadToSecOps(events); err == nil {
+		m.db.Update(func(txn *badger.Txn) error {
+			for _, k := range keys {
+				txn.Delete(k)
+			}
+			return nil
+		})
+	}
+}
+
+func (m *Malakocut) uploadToSecOps(events [][]byte) error {
+	url := fmt.Sprintf("%s?customer_id=%s&log_type=MALAKOCUT_NETWORK", m.Config.SecopsURL, m.Config.CustomerID)
+
+	var combined bytes.Buffer
+	combined.WriteString(`{"entries":[`)
+	for i, evt := range events {
+		combined.WriteString(fmt.Sprintf(`{"log_text": %q}`, string(evt)))
+		if i < len(events)-1 {
+			combined.WriteString(",")
+		}
+	}
+	combined.WriteString(`]}`)
+	payload := combined.Bytes()
+
+	maxRetries := 5
+	backoff := 1 * time.Second
+
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		req, err := http.NewRequestWithContext(m.ctx, "POST", url, bytes.NewReader(payload))
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := m.client.Do(req)
+		if err != nil {
+			lastErr = err
+		} else {
+			if resp.StatusCode == http.StatusOK {
+				resp.Body.Close()
+				log.Printf("[*] Flushed %d events to SecOps", len(events))
+				return nil
+			}
+
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("SecOps API error (%d): %s", resp.StatusCode, string(body))
+
+			if resp.StatusCode != 429 && resp.StatusCode < 500 {
+				return fmt.Errorf("non-retryable error: %w", lastErr)
+			}
+		}
+
+		select {
+		case <-m.ctx.Done():
+			return m.ctx.Err()
+		case <-time.After(backoff):
+			backoff *= 2
+		}
+	}
+
+	return fmt.Errorf("exhausted retries: %w", lastErr)
+}
