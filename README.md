@@ -72,12 +72,24 @@ The JSON emitted to SecOps is designed for the `unstructuredlogentries:batchCrea
 
 ## Running Malakocut
 
-### Command Line Flags
+### 1. Configure Environment Variables
+For security, Malakocut requires the following environment variables to be set:
+
+```bash
+# Your Google SecOps Customer ID (UUID)
+export CHRONICLE_CUSTOMER_ID="your-uuid-here"
+
+# A secure token for the local Forensic API
+export MALAKO_API_TOKEN="your-secure-auth-token"
+```
+
+### 2. Command Line Flags
 - `-interface`: Specify the sniffing interface (default: `enp3s0`).
 - `-debug`: Enable live flow summaries to stdout and log to `malakocut_debug.log`.
 - `-pcap-filter`: Override the default BPF filter for journaling.
 
-### Example
+### 3. Execution
 ```bash
+make build
 ./malakocut -interface enp3s0 -debug
 ```
