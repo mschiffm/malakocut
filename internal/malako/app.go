@@ -29,8 +29,9 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to open debug log: %w", err)
 		}
-		debugLogger = log.New(f, "[DEBUG] ", log.LstdFlags)
-		log.SetOutput(io.MultiWriter(os.Stderr, f))
+		mw := io.MultiWriter(os.Stdout, f)
+		debugLogger = log.New(mw, "[DEBUG] ", log.LstdFlags)
+		log.SetOutput(mw)
 		log.Println("[*] Debug mode enabled. Logging to malakocut_debug.log and stdout.")
 	}
 
