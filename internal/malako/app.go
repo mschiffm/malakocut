@@ -37,10 +37,13 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 
 	client := cfg.HTTPClient
 	if client == nil {
-		// Key file is optional for tests that provide HTTPClient
-		data, err := os.ReadFile("/root/malakocut/secops_key.json")
+		keyPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+		if keyPath == "" {
+			keyPath = "secops_key.json"
+		}
+		data, err := os.ReadFile(keyPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read key file: %w", err)
+			return nil, fmt.Errorf("failed to read key file %s: %w", keyPath, err)
 		}
 
 		creds, err := google.CredentialsFromJSON(context.Background(), data, cfg.AuthScope)

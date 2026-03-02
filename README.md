@@ -82,6 +82,9 @@ For security, Malakocut requires the following environment variables to be set:
 # Your Google SecOps Customer ID (UUID)
 export CHRONICLE_CUSTOMER_ID="your-uuid-here"
 
+# Path to your Google SecOps Service Account Key
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/secops_key.json"
+
 # The Ingestion API URL (Must match your region and instance)
 # Format: https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate
 export CHRONICLE_INGESTION_URL="https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
