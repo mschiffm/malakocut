@@ -74,6 +74,7 @@ func main() {
 		SendGridKey:   sendgridKey,
 		MailFrom:      mailFrom,
 		MailTo:        mailTo,
+		ControlSocket: "/var/run/malakocut.sock",
 	}
 
 	m, err := malako.NewMalakocut(cfg)
@@ -88,6 +89,7 @@ func main() {
 	go m.StartFlowJanitor()
 	go m.StartPcapJournaler()
 	go m.StartReporter()
+	go m.StartControlSocket()
 	
 	m.SendLifecycleEmail("Daemon Started", "System initialization complete")
 

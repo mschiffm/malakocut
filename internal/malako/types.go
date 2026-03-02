@@ -85,4 +85,7 @@ type Config struct {
 	SendGridKey    string
 	MailFrom       string
 	MailTo         string
+
+	// Control Configuration
+	ControlSocket  string
 }
