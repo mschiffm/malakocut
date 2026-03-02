@@ -125,6 +125,12 @@ View a top-like live-updating visualizer of the most active network flows in mem
 sudo malakocut-cli top
 ```
 
+**Interactive Shortcuts:**
+- `q`: Quit to shell.
+- `b`: Sort by Bytes (Default).
+- `p`: Sort by Packets.
+- `d`: Sort by Duration.
+
 ## Systemd Deployment
 
 To run Malakocut as a persistent background service:

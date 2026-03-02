@@ -34,6 +34,11 @@ func main() {
 	}
 
 	command := os.Args[1]
+	if command == "-h" || command == "--help" || command == "-help" || command == "help" {
+		usage()
+		return
+	}
+
 	switch command {
 	case "status":
 		showStatus()
@@ -45,8 +50,16 @@ func main() {
 }
 
 func usage() {
-	fmt.Println("Malakocut Control CLI")
-	fmt.Println("Usage: malakocut-cli [status|top]")
+	fmt.Printf("%sMalakocut Control CLI%s\r\n", COLOR_BOLD+COLOR_CYAN, COLOR_RESET)
+	fmt.Println("Usage: malakocut-cli [status|top|help]")
+	fmt.Println("\r\nCommands:")
+	fmt.Printf("  %sstatus%s    Show daemon uptime, disk health, and ingestion metrics.\r\n", COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("  %stop%s       Interactive live-updating flow visualizer.\r\n", COLOR_BOLD, COLOR_RESET)
+	fmt.Println("\r\nInteractive shortcuts (top mode):")
+	fmt.Println("  q         Quit to shell")
+	fmt.Println("  b         Sort by Bytes (Volume)")
+	fmt.Println("  p         Sort by Packets (Frequency)")
+	fmt.Println("  d         Sort by Duration (Session Length)")
 }
 
 func getClient() *http.Client {
