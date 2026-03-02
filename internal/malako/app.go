@@ -75,11 +75,13 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		cancel:      cancel,
 		debugLogger: debugLogger,
 		flows:       make(map[string]*FlowRecord),
-		pcapChan:    make(chan gopacket.Packet, 10000),
-		pcapBPF:     pcapBPF,
-		bytesPerIP:  make(map[string]int64),
-		startTime:   time.Now(),
-		Config:      cfg,
+		pcapChan:        make(chan gopacket.Packet, 10000),
+		pcapBPF:         pcapBPF,
+		bytesPerIP:      make(map[string]int64),
+		bytesPerSrcPort: make(map[int]int64),
+		bytesPerDstPort: make(map[int]int64),
+		startTime:       time.Now(),
+		Config:          cfg,
 	}
 
 	if cfg.DebugEnable {

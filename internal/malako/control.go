@@ -12,12 +12,14 @@ import (
 )
 
 type SystemStatus struct {
-	Uptime       string  `json:"uptime"`
-	DiskFreePct  float64 `json:"disk_free_pct"`
-	PcapFiles    int     `json:"pcap_files"`
-	TotalEvents  int64   `json:"total_events"`
-	ActiveFlows  int     `json:"active_flows"`
-	IngestionURL string  `json:"ingestion_url"`
+	Uptime       string        `json:"uptime"`
+	DiskFreePct  float64       `json:"disk_free_pct"`
+	PcapFiles    int           `json:"pcap_files"`
+	TotalEvents  int64         `json:"total_events"`
+	ActiveFlows  int           `json:"active_flows"`
+	IngestionURL string        `json:"ingestion_url"`
+	TopSrcPorts  map[int]int64 `json:"top_src_ports"`
+	TopDstPorts  map[int]int64 `json:"top_dst_ports"`
 }
 
 func (m *Malakocut) StartControlSocket() {
@@ -35,6 +37,16 @@ func (m *Malakocut) StartControlSocket() {
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		m.statsMu.Lock()
 		events := m.totalEvents
+		
+		// Snapshot top ports
+		srcPorts := make(map[int]int64)
+		for k, v := range m.bytesPerSrcPort {
+			srcPorts[k] = v
+		}
+		dstPorts := make(map[int]int64)
+		for k, v := range m.bytesPerDstPort {
+			dstPorts[k] = v
+		}
 		m.statsMu.Unlock()
 
 		freePct, _ := m.getFreeSpacePct(m.Config.PcapDir)
@@ -47,6 +59,8 @@ func (m *Malakocut) StartControlSocket() {
 			TotalEvents:  events,
 			ActiveFlows:  len(m.flows),
 			IngestionURL: m.Config.IngestionURL,
+			TopSrcPorts:  srcPorts,
+			TopDstPorts:  dstPorts,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(status)

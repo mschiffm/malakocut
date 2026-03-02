@@ -154,7 +154,7 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 			log.Printf("[*] Flushed %d events to SecOps", len(events))
 			m.RecordIngestion(len(events))
 			for _, evt := range events {
-				m.RecordActivity("SecOps Upload", len(evt))
+				m.RecordActivity("SecOps Upload", 0, 0, len(evt))
 			}
 			return nil
 		}

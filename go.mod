@@ -24,5 +24,6 @@ require (
 	github.com/segmentio/asm v1.1.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/term v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 )

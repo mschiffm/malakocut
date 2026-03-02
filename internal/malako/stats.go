@@ -8,10 +8,12 @@ import (
 	"time"
 )
 
-func (m *Malakocut) RecordActivity(srcIP string, bytes int) {
+func (m *Malakocut) RecordActivity(srcIP string, srcPort, dstPort, bytes int) {
 	m.statsMu.Lock()
 	defer m.statsMu.Unlock()
 	m.bytesPerIP[srcIP] += int64(bytes)
+	m.bytesPerSrcPort[srcPort] += int64(bytes)
+	m.bytesPerDstPort[dstPort] += int64(bytes)
 }
 
 func (m *Malakocut) RecordIngestion(count int) {
@@ -53,8 +55,29 @@ func (m *Malakocut) GenerateDailySummary() string {
 		sb.WriteString(fmt.Sprintf("%d. %-15s : %.2f MB\n", i+1, kv.Key, float64(kv.Value)/(1024*1024)))
 	}
 
+	sb.WriteString("\nTop Destination Ports:\n")
+	sb.WriteString("----------------------\n")
+	type portKV struct {
+		Key   int
+		Value int64
+	}
+	var ps []portKV
+	for k, v := range m.bytesPerDstPort {
+		if k == 0 { continue }
+		ps = append(ps, portKV{k, v})
+	}
+	sort.Slice(ps, func(i, j int) bool {
+		return ps[i].Value > ps[j].Value
+	})
+	for i, kv := range ps {
+		if i >= 10 { break }
+		sb.WriteString(fmt.Sprintf("%d. Port %-5d : %.2f MB\n", i+1, kv.Key, float64(kv.Value)/(1024*1024)))
+	}
+
 	// Reset for next period
 	m.bytesPerIP = make(map[string]int64)
+	m.bytesPerSrcPort = make(map[int]int64)
+	m.bytesPerDstPort = make(map[int]int64)
 	m.totalEvents = 0
 	m.startTime = time.Now()
 

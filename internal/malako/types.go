@@ -54,10 +54,12 @@ type Malakocut struct {
 	pcapBPF  *pcap.BPF
 
 	// Stats Tracking
-	statsMu     sync.Mutex
-	bytesPerIP  map[string]int64
-	totalEvents int64
-	startTime   time.Time
+	statsMu         sync.Mutex
+	bytesPerIP      map[string]int64
+	bytesPerSrcPort map[int]int64
+	bytesPerDstPort map[int]int64
+	totalEvents     int64
+	startTime       time.Time
 
 	// Configuration
 	Config Config
