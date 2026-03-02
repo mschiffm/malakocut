@@ -95,6 +95,8 @@ export MALAKO_API_TOKEN="your-secure-auth-token"
 # Mail Settings (Optional for Daily Summaries and Disk Alerts)
 # Sign up at sendgrid.com and create a Restricted Access API key with 'Mail Send' permission.
 export SENDGRID_API_KEY="SG.your-api-key-here"
+export MAIL_FROM="malako@packetchemistry.com"
+export MAIL_TO="you@example.com"
 ```
 
 ### 2. Optional Configuration

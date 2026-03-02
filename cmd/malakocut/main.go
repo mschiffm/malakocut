@@ -38,6 +38,15 @@ func main() {
 
 	// Mail Settings
 	sendgridKey := os.Getenv("SENDGRID_API_KEY")
+	mailFrom := os.Getenv("MAIL_FROM")
+	mailTo := os.Getenv("MAIL_TO")
+
+	if mailFrom == "" {
+		mailFrom = "themikeschiffman@gmail.com"
+	}
+	if mailTo == "" {
+		mailTo = "themikeschiffman@gmail.com"
+	}
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
 	ifaceFlag := flag.String("interface", DEFAULT_INTERFACE, "Network interface")
@@ -63,6 +72,8 @@ func main() {
 		ActiveTimeout: 10 * time.Second,
 		AuthScope:     "https://www.googleapis.com/auth/malachite-ingestion",
 		SendGridKey:   sendgridKey,
+		MailFrom:      mailFrom,
+		MailTo:        mailTo,
 	}
 
 	m, err := malako.NewMalakocut(cfg)

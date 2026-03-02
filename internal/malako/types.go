@@ -83,4 +83,6 @@ type Config struct {
 
 	// Mail Configuration (SendGrid)
 	SendGridKey    string
+	MailFrom       string
+	MailTo         string
 }

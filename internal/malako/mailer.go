@@ -11,8 +11,6 @@ import (
 
 const (
 	SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
-	FROM_EMAIL   = "themikeschiffman@gmail.com"
-	TO_EMAIL     = "themikeschiffman@gmail.com"
 )
 
 type sgMail struct {
@@ -36,14 +34,14 @@ type sgCont struct {
 }
 
 func (m *Malakocut) SendEmail(subject, body string) {
-	if m.Config.SendGridKey == "" {
-		log.Printf("[!] SendGrid not configured. Logged alert: %s - %s", subject, body)
+	if m.Config.SendGridKey == "" || m.Config.MailFrom == "" || m.Config.MailTo == "" {
+		log.Printf("[!] Mail not fully configured. Logged alert: %s - %s", subject, body)
 		return
 	}
 
 	payload := sgMail{
-		Personalizations: []sgPers{{To: []sgAddr{{Email: TO_EMAIL}}}},
-		From:             sgAddr{Email: FROM_EMAIL},
+		Personalizations: []sgPers{{To: []sgAddr{{Email: m.Config.MailTo}}}},
+		From:             sgAddr{Email: m.Config.MailFrom},
 		Subject:          subject,
 		Content:          []sgCont{{Type: "text/plain", Value: body}},
 	}
