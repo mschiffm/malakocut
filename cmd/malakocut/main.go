@@ -87,13 +87,19 @@ func main() {
 	go m.StartFlowJanitor()
 	go m.StartPcapJournaler()
 	go m.StartReporter()
+	
+	m.SendLifecycleEmail("Daemon Started", "System initialization complete")
+
 	go func() {
 		if err := m.StartListener(*ifaceFlag); err != nil {
 			log.Fatalf("[!] Listener error: %v", err)
 		}
 	}()
 
-	<-sigChan
-	log.Println("[*] Shutting down...")
+	sig := <-sigChan
+	reason := fmt.Sprintf("Received signal: %v", sig)
+	log.Printf("[*] Shutting down (%s)...", reason)
+	m.SendLifecycleEmail("Daemon Stopping", reason)
+	
 	m.Close()
 }

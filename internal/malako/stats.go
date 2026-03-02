@@ -2,6 +2,7 @@ package malako
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -58,6 +59,21 @@ func (m *Malakocut) GenerateDailySummary() string {
 	m.startTime = time.Now()
 
 	return sb.String()
+}
+
+func (m *Malakocut) GetSystemContext() string {
+	freePct, _ := m.getFreeSpacePct(m.Config.PcapDir)
+	
+	files, _ := os.ReadDir(m.Config.PcapDir)
+	pcapCount := 0
+	for _, f := range files {
+		if !f.IsDir() {
+			pcapCount++
+		}
+	}
+
+	return fmt.Sprintf("Disk Free: %.2f%%\nPCAP Journal Files: %d\nActive Flows: %d", 
+		freePct, pcapCount, len(m.flows))
 }
 
 func (m *Malakocut) StartReporter() {

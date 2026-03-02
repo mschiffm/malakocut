@@ -95,3 +95,15 @@ func (m *Malakocut) Close() {
 		m.db.Close()
 	}
 }
+
+func (m *Malakocut) SendLifecycleEmail(action, reason string) {
+	subject := fmt.Sprintf("Malakocut Notification: %s", action)
+	body := fmt.Sprintf("Action: %s\n", action)
+	if reason != "" {
+		body += fmt.Sprintf("Context/Reason: %s\n", reason)
+	}
+	body += "\n--- System Context ---\n"
+	body += m.GetSystemContext()
+	
+	m.SendEmail(subject, body)
+}
