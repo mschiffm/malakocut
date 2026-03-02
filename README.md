@@ -38,14 +38,10 @@ To enable deep forensics without overwhelming SIEM ingestion or disk space:
 ### 4. Robust Exporter & Local Buffer
 - **Persistence**: Metadata is first written to a local **BadgerDB** (key-value store).
 - **Batching**: The exporter flushes events in batches of 100 to the Google SecOps API.
-- **Error Handling**: Implements **Exponential Backoff** retries. If the uploader interface (`enp2s0`) goes down or the API rate-limits the tool (HTTP 429), data remains safe in BadgerDB and is retried once connectivity is restored.
-
-### 5. Forensic Retrieval API
-- **Endpoint**: Authenticated HTTP API (`POST /extract`) listening on port 8080.
-- **Security**: Requires a `Bearer Token` in the Authorization header.
-- **Surgical Extraction**: Accepts a 5-tuple and a time window. It scans the rolling journal, surgically extracts matching packets, and streams a standard `.pcap` file back to the caller (e.g., a SOAR playbook).
+- **Error Handling**: Implements **Exponential Backoff** retries. If the uploader interface goes down or the API rate-limits the tool (HTTP 429), data remains safe in BadgerDB and is retried once connectivity is restored.
 
 ## Network Configuration
+Interface names may vary.
 
 | Interface | Role | Purpose |
 |-----------|------|---------|
@@ -89,14 +85,11 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/secops_key.json"
 # Format: https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate
 export CHRONICLE_INGESTION_URL="https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
 
-# A secure token for the local Forensic API
-export MALAKO_API_TOKEN="your-secure-auth-token"
-
 # Mail Settings (Optional for Daily Summaries and Disk Alerts)
 # Sign up at sendgrid.com and create a Restricted Access API key with 'Mail Send' permission.
-export SENDGRID_API_KEY="SG.your-api-key-here"
-export MAIL_FROM="malako@packetchemistry.com"
-export MAIL_TO="you@example.com"
+#export SENDGRID_API_KEY="SG.your-api-key-here"
+#export MAIL_FROM="malakocut@example.com"
+#export MAIL_TO="you@example.com"
 ```
 
 ### 2. Optional Configuration
@@ -118,7 +111,7 @@ make build
 
 ## Control CLI
 
-Malakocut includes a secure command-line tool (`malakocut-cli`) to query the live state of the daemon via a Unix Domain Socket (`/var/run/malakocut.sock`).
+Malakocut includes a command-line tool (`malakocut-cli`) to query the live state of the daemon via a Unix Domain Socket (`/var/run/malakocut.sock`).
 
 ### 1. System Status
 Get a robust snapshot of uptime, ingestion metrics, and disk health:
@@ -127,7 +120,7 @@ sudo malakocut-cli status
 ```
 
 ### 2. Live Top-Talkers (Top)
-View a live-updating visualizer of the most active network flows in memory:
+View a top-like live-updating visualizer of the most active network flows in memory:
 ```bash
 sudo malakocut-cli top
 ```
@@ -140,9 +133,13 @@ To run Malakocut as a persistent background service:
     ```bash
     sudo make install
     ```
-2.  **Configure credentials**:
-    Edit `/etc/default/malakocut` and fill in your UUID and Token.
-3.  **Start and Enable**:
+2.  **Verify with tests (Optional)**:
+    ```bash
+    make test
+    ```
+3.  **Configure credentials**:
+    Edit `/etc/default/malakocut` and fill in your UUID and keys.
+4.  **Start and Enable**:
     ```bash
     sudo systemctl enable --now malakocut
     ```
