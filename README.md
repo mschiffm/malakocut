@@ -109,3 +109,24 @@ export CHRONICLE_LOG_TYPE="MALAKOCUT_NETWORK_CUSTOM"
 make build
 ./malakocut -interface enp3s0 -debug
 ```
+
+## Systemd Deployment
+
+To run Malakocut as a persistent background service:
+
+1.  **Install the service**:
+    ```bash
+    sudo make install
+    ```
+2.  **Configure credentials**:
+    Edit `/etc/default/malakocut` and fill in your UUID and Token.
+3.  **Start and Enable**:
+    ```bash
+    sudo systemctl enable --now malakocut
+    ```
+4.  **View Logs**:
+    ```bash
+    tail -f /var/log/malakocut.log
+    # OR
+    journalctl -u malakocut -f
+    ```

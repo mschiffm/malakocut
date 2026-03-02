@@ -8,6 +8,7 @@
 
 # Secrets and Keys
 secops_key.json
+malakocut.env
 *.pem
 *.key
 *.pub
