@@ -151,6 +151,8 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	record.LastSeen = time.Now()
 	record.Meta.Bytes += len(packet.Data())
 	record.Meta.Packets++
+	
+	m.RecordActivity(srcIP, len(packet.Data()))
 
 	if isTCP {
 		var flags []string

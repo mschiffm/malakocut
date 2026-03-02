@@ -7,11 +7,13 @@
 *.dylib
 
 # Secrets and Keys
+auth.json
 secops_key.json
 malakocut.env
 *.pem
 *.key
 *.pub
+*.token
 .env
 
 # Local Databases and Buffers

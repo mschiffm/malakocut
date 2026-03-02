@@ -53,6 +53,12 @@ type Malakocut struct {
 	pcapChan chan gopacket.Packet
 	pcapBPF  *pcap.BPF
 
+	// Stats Tracking
+	statsMu     sync.Mutex
+	bytesPerIP  map[string]int64
+	totalEvents int64
+	startTime   time.Time
+
 	// Configuration
 	Config Config
 }
@@ -64,7 +70,6 @@ type Config struct {
 	PcapFilter     string
 	HTTPClient     *http.Client
 	DebugEnable    bool
-	APIToken       string
 	IngestionURL   string
 	CustomerID     string
 	LogType        string
@@ -75,5 +80,10 @@ type Config struct {
 	IdleTimeout    time.Duration
 	ActiveTimeout  time.Duration
 	AuthScope      string
-	APIPort        string
+
+	// SMTP Configuration
+	SMTPHost string
+	SMTPPort int
+	SMTPUser string
+	SMTPPass string
 }

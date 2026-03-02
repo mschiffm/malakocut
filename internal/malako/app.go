@@ -77,6 +77,8 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		flows:       make(map[string]*FlowRecord),
 		pcapChan:    make(chan gopacket.Packet, 10000),
 		pcapBPF:     pcapBPF,
+		bytesPerIP:  make(map[string]int64),
+		startTime:   time.Now(),
 		Config:      cfg,
 	}
 

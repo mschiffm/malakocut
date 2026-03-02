@@ -1,0 +1,76 @@
+package malako
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+	"time"
+)
+
+func (m *Malakocut) RecordActivity(srcIP string, bytes int) {
+	m.statsMu.Lock()
+	defer m.statsMu.Unlock()
+	m.bytesPerIP[srcIP] += int64(bytes)
+}
+
+func (m *Malakocut) RecordIngestion(count int) {
+	m.statsMu.Lock()
+	defer m.statsMu.Unlock()
+	m.totalEvents += int64(count)
+}
+
+func (m *Malakocut) GenerateDailySummary() string {
+	m.statsMu.Lock()
+	defer m.statsMu.Unlock()
+
+	var sb strings.Builder
+	sb.WriteString("Malakocut Daily NDR Summary\n")
+	sb.WriteString("===========================\n")
+	sb.WriteString("Report Period: " + m.startTime.Format(time.RFC822) + " to " + time.Now().Format(time.RFC822) + "\n")
+	sb.WriteString("Total Events Sent to SecOps: " + fmt.Sprintf("%d", m.totalEvents) + "\n\n")
+
+	sb.WriteString("Top 10 Talkers (by Volume):\n")
+	sb.WriteString("---------------------------\n")
+
+	type kv struct {
+		Key   string
+		Value int64
+	}
+	var ss []kv
+	for k, v := range m.bytesPerIP {
+		ss = append(ss, kv{k, v})
+	}
+
+	sort.Slice(ss, func(i, j int) bool {
+		return ss[i].Value > ss[j].Value
+	})
+
+	for i, kv := range ss {
+		if i >= 10 {
+			break
+		}
+		sb.WriteString(fmt.Sprintf("%d. %-15s : %.2f MB\n", i+1, kv.Key, float64(kv.Value)/(1024*1024)))
+	}
+
+	// Reset for next period
+	m.bytesPerIP = make(map[string]int64)
+	m.totalEvents = 0
+	m.startTime = time.Now()
+
+	return sb.String()
+}
+
+func (m *Malakocut) StartReporter() {
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-m.ctx.Done():
+			return
+		case <-ticker.C:
+			summary := m.GenerateDailySummary()
+			m.SendEmail("Malakocut Daily Summary", summary)
+		}
+	}
+}

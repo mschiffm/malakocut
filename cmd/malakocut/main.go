@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -15,13 +16,11 @@ const (
 	DEFAULT_INTERFACE = "enp3s0"
 	BUFFER_PATH       = "/var/lib/malakocut/buffer"
 	PCAP_DIR          = "/var/lib/malakocut/pcap"
-	API_PORT          = ":8080"
 )
 
 func main() {
 	// Sensitive values from Environment
 	customerID := os.Getenv("CHRONICLE_CUSTOMER_ID")
-	apiToken := os.Getenv("MALAKO_API_TOKEN")
 	logType := os.Getenv("CHRONICLE_LOG_TYPE")
 	ingestionURL := os.Getenv("CHRONICLE_INGESTION_URL")
 
@@ -33,8 +32,18 @@ func main() {
 		ingestionURL = "https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
 	}
 
-	if customerID == "" || apiToken == "" {
-		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and MALAKO_API_TOKEN must be set in environment")
+	if customerID == "" || ingestionURL == "" {
+		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and CHRONICLE_INGESTION_URL must be set in environment")
+	}
+
+	// SMTP Settings
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPortStr := os.Getenv("SMTP_PORT")
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
+	smtpPort := 587
+	if smtpPortStr != "" {
+		fmt.Sscanf(smtpPortStr, "%d", &smtpPort)
 	}
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
@@ -50,7 +59,6 @@ func main() {
 		PcapDir:       PCAP_DIR,
 		PcapFilter:    *filterFlag,
 		DebugEnable:   *debugFlag,
-		APIToken:      apiToken,
 		IngestionURL:  ingestionURL,
 		CustomerID:    customerID,
 		LogType:       logType,
@@ -61,7 +69,10 @@ func main() {
 		IdleTimeout:   5 * time.Second,
 		ActiveTimeout: 10 * time.Second,
 		AuthScope:     "https://www.googleapis.com/auth/malachite-ingestion",
-		APIPort:       API_PORT,
+		SMTPHost:      smtpHost,
+		SMTPPort:      smtpPort,
+		SMTPUser:      smtpUser,
+		SMTPPass:      smtpPass,
 	}
 
 	m, err := malako.NewMalakocut(cfg)
@@ -75,7 +86,7 @@ func main() {
 	go m.StartExporter()
 	go m.StartFlowJanitor()
 	go m.StartPcapJournaler()
-	go m.StartAPI()
+	go m.StartReporter()
 	go func() {
 		if err := m.StartListener(*ifaceFlag); err != nil {
 			log.Fatalf("[!] Listener error: %v", err)
