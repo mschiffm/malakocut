@@ -116,6 +116,22 @@ make build
 ./malakocut -interface enp3s0 -debug
 ```
 
+## Control CLI
+
+Malakocut includes a secure command-line tool (`malakocut-cli`) to query the live state of the daemon via a Unix Domain Socket (`/var/run/malakocut.sock`).
+
+### 1. System Status
+Get a robust snapshot of uptime, ingestion metrics, and disk health:
+```bash
+sudo malakocut-cli status
+```
+
+### 2. Live Top-Talkers (Top)
+View a live-updating visualizer of the most active network flows in memory:
+```bash
+sudo malakocut-cli top
+```
+
 ## Systemd Deployment
 
 To run Malakocut as a persistent background service:
