@@ -92,11 +92,9 @@ export CHRONICLE_INGESTION_URL="https://malachiteingestion-pa.googleapis.com/v2/
 # A secure token for the local Forensic API
 export MALAKO_API_TOKEN="your-secure-auth-token"
 
-# SMTP Settings (Optional for Daily Summaries and Disk Alerts)
-export SMTP_HOST="smtp.gmail.com"
-export SMTP_PORT="587"
-export SMTP_USER="your-email@gmail.com"
-export SMTP_PASS="your-gmail-app-password"
+# Mail Settings (Optional for Daily Summaries and Disk Alerts)
+# Sign up at sendgrid.com and create a Restricted Access API key with 'Mail Send' permission.
+export SENDGRID_API_KEY="SG.your-api-key-here"
 ```
 
 ### 2. Optional Configuration

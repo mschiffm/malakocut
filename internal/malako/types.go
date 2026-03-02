@@ -81,9 +81,6 @@ type Config struct {
 	ActiveTimeout  time.Duration
 	AuthScope      string
 
-	// SMTP Configuration
-	SMTPHost string
-	SMTPPort int
-	SMTPUser string
-	SMTPPass string
+	// Mail Configuration (SendGrid)
+	SendGridKey    string
 }

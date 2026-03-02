@@ -1,32 +1,80 @@
 package malako
 
 import (
-	"fmt"
+	"bytes"
 	"log"
-	"net/smtp"
+	"net/http"
+	"time"
+
+	"github.com/segmentio/encoding/json"
 )
 
+const (
+	SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
+	FROM_EMAIL   = "themikeschiffman@gmail.com"
+	TO_EMAIL     = "themikeschiffman@gmail.com"
+)
+
+type sgMail struct {
+	Personalizations []sgPers `json:"personalizations"`
+	From             sgAddr   `json:"from"`
+	Subject          string   `json:"subject"`
+	Content          []sgCont `json:"content"`
+}
+
+type sgPers struct {
+	To []sgAddr `json:"to"`
+}
+
+type sgAddr struct {
+	Email string `json:"email"`
+}
+
+type sgCont struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
 func (m *Malakocut) SendEmail(subject, body string) {
-	cfg := m.Config
-	if cfg.SMTPHost == "" || cfg.SMTPUser == "" || cfg.SMTPPass == "" {
-		log.Printf("[!] SMTP not configured. Logged alert: %s - %s", subject, body)
+	if m.Config.SendGridKey == "" {
+		log.Printf("[!] SendGrid not configured. Logged alert: %s - %s", subject, body)
 		return
 	}
 
-	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
-	auth := smtp.PlainAuth("", cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPHost)
+	payload := sgMail{
+		Personalizations: []sgPers{{To: []sgAddr{{Email: TO_EMAIL}}}},
+		From:             sgAddr{Email: FROM_EMAIL},
+		Subject:          subject,
+		Content:          []sgCont{{Type: "text/plain", Value: body}},
+	}
 
-	// RFC 822 format: Headers followed by a blank line and then the body
-	msg := "To: themikeschiffman@gmail.com\r\n" +
-		"Subject: " + subject + "\r\n" +
-		"Content-Type: text/plain; charset=UTF-8\r\n" +
-		"\r\n" +
-		body + "\r\n"
-
-	err := smtp.SendMail(addr, auth, cfg.SMTPUser, []string{"themikeschiffman@gmail.com"}, []byte(msg))
+	data, err := json.Marshal(payload)
 	if err != nil {
-		log.Printf("[!] Failed to send email alert: %v", err)
+		log.Printf("[!] Failed to marshal email payload: %v", err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", SENDGRID_URL, bytes.NewBuffer(data))
+	if err != nil {
+		log.Printf("[!] Failed to create email request: %v", err)
+		return
+	}
+
+	req.Header.Set("Authorization", "Bearer "+m.Config.SendGridKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Use a 5-second timeout for email sends
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("[!] Failed to send email via SendGrid: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		log.Printf("[!] SendGrid API error: status %d", resp.StatusCode)
 	} else {
-		log.Printf("[*] Email alert sent: %s", subject)
+		log.Printf("[*] Email alert sent via SendGrid: %s", subject)
 	}
 }

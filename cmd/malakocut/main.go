@@ -36,15 +36,8 @@ func main() {
 		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and CHRONICLE_INGESTION_URL must be set in environment")
 	}
 
-	// SMTP Settings
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPortStr := os.Getenv("SMTP_PORT")
-	smtpUser := os.Getenv("SMTP_USER")
-	smtpPass := os.Getenv("SMTP_PASS")
-	smtpPort := 587
-	if smtpPortStr != "" {
-		fmt.Sscanf(smtpPortStr, "%d", &smtpPort)
-	}
+	// Mail Settings
+	sendgridKey := os.Getenv("SENDGRID_API_KEY")
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
 	ifaceFlag := flag.String("interface", DEFAULT_INTERFACE, "Network interface")
@@ -69,10 +62,7 @@ func main() {
 		IdleTimeout:   5 * time.Second,
 		ActiveTimeout: 10 * time.Second,
 		AuthScope:     "https://www.googleapis.com/auth/malachite-ingestion",
-		SMTPHost:      smtpHost,
-		SMTPPort:      smtpPort,
-		SMTPUser:      smtpUser,
-		SMTPPass:      smtpPass,
+		SendGridKey:   sendgridKey,
 	}
 
 	m, err := malako.NewMalakocut(cfg)
