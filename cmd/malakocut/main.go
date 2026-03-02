@@ -28,9 +28,13 @@ func main() {
 	if logType == "" {
 		logType = "MALAKOCUT_NETWORK_CUSTOM"
 	}
+	if ingestionURL == "" {
+		// Standard v2 Ingestion Endpoint
+		ingestionURL = "https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
+	}
 
-	if customerID == "" || apiToken == "" || ingestionURL == "" {
-		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID, CHRONICLE_INGESTION_URL, and MALAKO_API_TOKEN must be set in environment")
+	if customerID == "" || apiToken == "" {
+		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and MALAKO_API_TOKEN must be set in environment")
 	}
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
@@ -56,7 +60,7 @@ func main() {
 		FlushInterval: 1 * time.Second,
 		IdleTimeout:   5 * time.Second,
 		ActiveTimeout: 10 * time.Second,
-		AuthScope:     "https://www.googleapis.com/auth/chronicle",
+		AuthScope:     "https://www.googleapis.com/auth/malachite-ingestion",
 		APIPort:       API_PORT,
 	}
 

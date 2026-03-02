@@ -91,12 +91,14 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 	if m.debugLogger != nil {
 		m.debugLogger.Printf("uploadToSecOps: starting upload of %d events", len(events))
 	}
-	url := fmt.Sprintf("%s?customer_id=%s&log_type=%s", m.Config.IngestionURL, m.Config.CustomerID, m.Config.LogType)
-
+	
+	// FIX 1: Updated to strict camelCase (customerId, logType, logText)
 	var combined bytes.Buffer
-	combined.WriteString(`{"entries":[`)
+	combined.WriteString(fmt.Sprintf(`{"customerId":%q, "logType":%q, "entries":[`, 
+		m.Config.CustomerID, m.Config.LogType))
+	
 	for i, evt := range events {
-		combined.WriteString(fmt.Sprintf(`{"log_text": %q}`, string(evt)))
+		combined.WriteString(fmt.Sprintf(`{"logText": %q}`, string(evt)))
 		if i < len(events)-1 {
 			combined.WriteString(",")
 		}
@@ -113,11 +115,14 @@ func (m *Malakocut) uploadToSecOps(events [][]byte) error {
 		}
 
 		ctx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
-		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, "POST", m.Config.IngestionURL, bytes.NewReader(payload))
 		if err != nil {
 			cancel()
 			return fmt.Errorf("failed to create request: %w", err)
 		}
+		
+		// FIX 2: Added the mandatory routing header and removed the unnecessary user-project header
+		req.Header.Set("X-Chronicle-Customer-Id", m.Config.CustomerID)
 		req.Header.Set("Content-Type", "application/json")
 
 		if m.debugLogger != nil {

@@ -65,7 +65,7 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Malakocut{
+	m := &Malakocut{
 		db:          db,
 		client:      client,
 		ctx:         ctx,
@@ -75,7 +75,13 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		pcapChan:    make(chan gopacket.Packet, 10000),
 		pcapBPF:     pcapBPF,
 		Config:      cfg,
-	}, nil
+	}
+
+	if cfg.DebugEnable {
+		log.Printf("[DEBUG] Configured Ingestion URL: %s", cfg.IngestionURL)
+	}
+
+	return m, nil
 }
 
 func (m *Malakocut) Close() {

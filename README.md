@@ -82,9 +82,9 @@ For security, Malakocut requires the following environment variables to be set:
 # Your Google SecOps Customer ID (UUID)
 export CHRONICLE_CUSTOMER_ID="your-uuid-here"
 
-# The Ingestion API URL (Must match your region)
-# Default for US: https://grasp.backstory.chronicle.security/v1/ingestion:sendUnstructuredEvents
-export CHRONICLE_INGESTION_URL="https://grasp.backstory.chronicle.security/v1/ingestion:sendUnstructuredEvents"
+# The Ingestion API URL (Must match your region and instance)
+# Format: https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate
+export CHRONICLE_INGESTION_URL="https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
 
 # A secure token for the local Forensic API
 export MALAKO_API_TOKEN="your-secure-auth-token"
