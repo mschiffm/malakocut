@@ -68,13 +68,15 @@ sudo ./malakocut-cli top
 - `b`: Sort by Bytes.
 - `p`: Sort by Packets.
 - `d`: Sort by Duration.
+- `i`: Sort by **Idleness** (Freshness).
 - `r`: **Toggle DNS & ICMP Resolution**.
     - Resolves IP addresses to hostnames.
     - Resolves ICMP Type/Code to human-readable strings (e.g., `Echo Req`, `Dest Unreach`).
 
 **Visuals**:
-- **Dynamic Scaling**: Column widths adjust automatically to fit your terminal window.
+- **Dynamic Scaling**: Column widths adjust automatically based on your terminal size (similar to `top`).
 - **Syntax Highlighting**: Protocol-specific colors and bold headers.
+- **Real-time Freshness**: Track exactly how many seconds ago a session was last active.
 
 ## Systemd Deployment
 ```bash

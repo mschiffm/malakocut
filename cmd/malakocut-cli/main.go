@@ -82,7 +82,8 @@ func usage() {
 	fmt.Println("  b         Sort by Bytes (Volume)")
 	fmt.Println("  p         Sort by Packets (Frequency)")
 	fmt.Println("  d         Sort by Duration (Session Length)")
-	fmt.Println("  r         Toggle DNS resolution")
+	fmt.Println("  i         Sort by Idleness (Freshness)")
+	fmt.Println("  r         Toggle DNS & ICMP resolution")
 }
 
 func getHostname(ip string) string {
@@ -212,6 +213,8 @@ func showTop() {
 				sortBy = "packets"
 			case 'd':
 				sortBy = "duration"
+			case 'i':
+				sortBy = "idle"
 			case 'r':
 				resolveDNS = !resolveDNS
 			}
@@ -274,6 +277,8 @@ func renderTop(client *http.Client, sortBy string) {
 			return flows[i].Packets > flows[j].Packets
 		case "duration":
 			return flows[i].DurationS > flows[j].DurationS
+		case "idle":
+			return flows[i].IdleS < flows[j].IdleS // Smaller is fresher
 		default:
 			return flows[i].Bytes > flows[j].Bytes
 		}
@@ -286,9 +291,8 @@ func renderTop(client *http.Client, sortBy string) {
 	}
 
 	// Calculate Dynamic Widths
-	// Fixed widths: ID:8, PROTO:6, FLAGS:14, BYTES:10, PKTS:8, DUR:8 = 54 + padding gaps
-	// We divide the remaining space between SRC and DST
-	fixedPart := 8 + 8 + 14 + 10 + 8 + 8 + 10 // headers + gaps
+	// Fixed widths: ID:8, PROTO:8, INFO:14, BYTES:10, PKTS:8, DUR:8, IDLE:8 = 64 + gaps
+	fixedPart := 8 + 8 + 14 + 10 + 8 + 8 + 8 + 12 // headers + gaps
 	rem := termWidth - fixedPart
 	if rem < 20 { rem = 20 }
 	colWidth := rem / 2
@@ -303,13 +307,13 @@ func renderTop(client *http.Client, sortBy string) {
 		COLOR_GREEN, len(flows), COLOR_RESET,
 		COLOR_YEL, sortBy, COLOR_RESET, resolveDNS)
 	
-	fmt.Printf("Shortcuts: %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %sr%sesolve\r\n\r\n",
-		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("Shortcuts: %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve\r\n\r\n",
+		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	// Column definitions (widths)
 	fmt.Print(COLOR_REV)
-	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %8s",
-		"FLOW ID", colWidth, "SRC (HOST/IP)", colWidth, "DST (HOST/IP)", "PROTO", "INFO/FLAGS", "BYTES", "PKTS", "DUR (s)")
+	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %8s %8s",
+		"FLOW ID", colWidth, "SRC (HOST/IP)", colWidth, "DST (HOST/IP)", "PROTO", "INFO/FLAGS", "BYTES", "PKTS", "DUR (s)", "IDLE (s)")
 	fmt.Printf("%s\r\n", COLOR_RESET)
 
 	for i, f := range flows {
@@ -349,6 +353,7 @@ func renderTop(client *http.Client, sortBy string) {
 		fmt.Printf("%s%-14s%s ", COLOR_YEL, info, COLOR_RESET)
 		fmt.Printf("%10d ", f.Bytes)
 		fmt.Printf("%8d ", f.Packets)
-		fmt.Printf("%8.2f\r\n", f.DurationS)
+		fmt.Printf("%8.2f ", f.DurationS)
+		fmt.Printf("%8.2f\r\n", f.IdleS)
 	}
 }
