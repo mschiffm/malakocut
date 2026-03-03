@@ -44,20 +44,19 @@ func (m *Malakocut) StartListener(iface string) error {
 			if packet == nil {
 				continue
 			}
-			// Send to PCAP Journaler IF NOT FILTERED
-			shouldJournal := true
+			// Apply Global Filter
 			if m.pcapBPF != nil {
 				if !m.pcapBPF.Matches(packet.Metadata().CaptureInfo, packet.Data()) {
-					shouldJournal = false
+					continue // Drop noise immediately
 				}
 			}
 
-			if shouldJournal {
-				select {
-				case m.pcapChan <- packet:
-				default:
-				}
+			// Send to PCAP Journaler
+			select {
+			case m.pcapChan <- packet:
+			default:
 			}
+			
 			go m.processPacket(packet, linkType)
 		}
 	}
@@ -70,9 +69,11 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	var ip6 layers.IPv6
 	var tcp layers.TCP
 	var udp layers.UDP
+	var icmp4 layers.ICMPv4
+	var icmp6 layers.ICMPv6
 	var payload gopacket.Payload
 
-	parser := gopacket.NewDecodingLayerParser(firstLayer, &eth, &dot1q, &ip4, &ip6, &tcp, &udp, &payload)
+	parser := gopacket.NewDecodingLayerParser(firstLayer, &eth, &dot1q, &ip4, &ip6, &tcp, &udp, &icmp4, &icmp6, &payload)
 	decoded := []gopacket.LayerType{}
 
 	_ = parser.DecodeLayers(packet.Data(), &decoded)
@@ -106,6 +107,12 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 		case layers.LayerTypeUDP:
 			srcPort = int(udp.SrcPort)
 			dstPort = int(udp.DstPort)
+			l4Found = true
+		case layers.LayerTypeICMPv4:
+			protocol = "ICMP"
+			l4Found = true
+		case layers.LayerTypeICMPv6:
+			protocol = "ICMPv6"
 			l4Found = true
 		}
 	}

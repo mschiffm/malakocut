@@ -50,16 +50,26 @@ func main() {
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
 	ifaceFlag := flag.String("interface", DEFAULT_INTERFACE, "Network interface")
-	filterFlag := flag.String("pcap-filter", "not (port 443 or port 80 or port 3478 or port 3479 or port 3074 or port 25565 or (udp portrange 49152-65535) or port 1900 or port 5353)", "BPF filter for PCAP journaling")
+	excludeWeb := flag.Bool("exclude-web", false, "Exclude HTTP/HTTPS (80/443) traffic from both telemetry and journaling")
+	
+	// Refined noise filter: Exclude Broadcast, Multicast, ARP, DHCP, mDNS, SSDP, NetBIOS, LLMNR
+	baseFilter := "not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)"
+	filterFlag := flag.String("filter", baseFilter, "Global BPF filter for both telemetry and PCAP journaling")
 	flag.Parse()
 
+	finalFilter := *filterFlag
+	if *excludeWeb {
+		finalFilter = fmt.Sprintf("(%s) and not (port 80 or port 443)", finalFilter)
+	}
+
 	log.Printf("[*] Starting malakocut (Interface: %s, Debug: %v)", *ifaceFlag, *debugFlag)
+	log.Printf("[*] Global Filter: %s", finalFilter)
 
 	cfg := malako.Config{
 		Interface:     *ifaceFlag,
 		BufferPath:    BUFFER_PATH,
 		PcapDir:       PCAP_DIR,
-		PcapFilter:    *filterFlag,
+		PcapFilter:    finalFilter,
 		DebugEnable:   *debugFlag,
 		IngestionURL:  ingestionURL,
 		CustomerID:    customerID,
@@ -68,8 +78,8 @@ func main() {
 		PcapMaxSize:   500 * 1024 * 1024,
 		BatchSize:     100,
 		FlushInterval: 1 * time.Second,
-		IdleTimeout:   5 * time.Second,
-		ActiveTimeout: 10 * time.Second,
+		IdleTimeout:   60 * time.Second,
+		ActiveTimeout: 120 * time.Second,
 		AuthScope:     "https://www.googleapis.com/auth/malachite-ingestion",
 		SendGridKey:   sendgridKey,
 		MailFrom:      mailFrom,
