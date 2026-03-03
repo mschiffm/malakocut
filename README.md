@@ -7,151 +7,77 @@ Malakocut is a high-performance Network Detection and Response (NDR) agent desig
 
 ## Core Architecture
 
-The application is built in Go for maximum performance and concurrency, utilizing a multi-stage pipeline to process multi-gigabit traffic without frame loss.
+### 1. Ingestion Layer (High Performance)
+- **Engine**: Uses `google/gopacket` with `AF_PACKET` zero-copy memory-mapped buffers on Linux.
+- **Synchronous Decoding**: Implements a serialized decoding pipeline to eliminate buffer races and ensure 100% packet accuracy.
+- **Protocol Support**: Native support for Ethernet, 802.1Q (VLAN), IPv4, IPv6, TCP, UDP, ICMPv4, and ICMPv6.
 
-### 1. Ingestion Layer (Zero-Copy)
-- **Engine**: Uses `google/gopacket` with `AF_PACKET` on Linux.
-- **Performance**: Implements a zero-copy circular buffer memory-mapped into user space to minimize CPU context switching.
-- **Promiscuous Mode**: Native Linux socket calls (`PACKET_MR_PROMISC`) ensure unicast traffic not directed at the sniffer's MAC address is captured.
-- **Protocol Support**: Uses a `DecodingLayerParser` to efficiently handle Ethernet, 802.1Q (VLAN), IPv4, IPv6, TCP, and UDP.
+### 2. Stateful Flow Aggregation (Persistent State)
+Instead of just logging packets, Malakocut maintains a persistent in-memory **Flow Table**:
+- **Cumulative Tracking**: Sessions are tracked for their entire lifetime (hours or days). `malakocut-cli top` shows real-time cumulative totals.
+- **Delta Exports**: Long-running sessions are "checkpointed" every 5 minutes and exported as incremental deltas to Google SecOps.
+- **L7 Enrichment**: Inspects initial packets for DNS queries to provide context.
 
-### 2. Stateful Flow Aggregation (NDR Telemetry)
-Instead of logging individual packets, Malakocut maintains an in-memory **Flow Table**:
-- **Aggregation**: Packets are grouped by 5-tuple (SrcIP, DstIP, SrcPort, DstPort, Protocol).
-- **Metrics**: Tracks cumulative bytes, packet counts, and bitwise-merged TCP flags (e.g., `SYN|ACK|PSH|FIN`).
-- **L7 Enrichment**: Inspects the first 10 packets of every flow to extract context:
-    - **DNS**: Captures requested domain names.
-    - **TLS (SNI)**: Heuristic extraction of Server Name Indication (forthcoming).
-- **Eviction (Flow Janitor)**: A background process flushes flows to the SIEM when:
-    - They are idle for 60 seconds.
-    - They have been active for more than 120 seconds (splitting long-lived sessions).
-    - A `FIN` or `RST` flag is detected.
+### 3. Dynamic Streaming Blocklist
+To save on SIEM costs and noise, Malakocut includes a DNS-based "Shunt" filter:
+- **Blocklist**: Configurable via `configs/blocklist.conf`.
+- **Function**: When a DNS query matches a streaming service (e.g., Netflix, YouTube, Prime Video), the entire flow is silenced. No further telemetry or PCAP data is recorded for that session.
 
-### 3. PCAP Ring Buffer (Local Journaling)
-To enable deep forensics without overwhelming SIEM ingestion or disk space:
+### 4. PCAP Ring Buffer (Local Journaling)
 - **Journaler**: Every raw packet is sent to an asynchronous disk-writing goroutine.
-- **BPF Filtering**: A "Software Filter" allows you to exclude high-volume "noise" from the disk (but not the telemetry).
-    - **Default Filter**: Excludes standard Web/Streaming (80/443), Gaming (PlayStation, Roblox, Minecraft), and local discovery noise (mDNS/SSDP).
-- **Rotation**: Files are rotated every 500MB.
-- **Retention**: A 48-hour rolling window is enforced by a background cleanup task.
-
-### 4. Robust Exporter & Local Buffer
-- **Persistence**: Metadata is first written to a local **BadgerDB** (key-value store).
-- **Batching**: The exporter flushes events in batches of 100 to the Google SecOps API.
-- **Error Handling**: Implements **Exponential Backoff** retries. If the uploader interface goes down or the API rate-limits the tool (HTTP 429), data remains safe in BadgerDB and is retried once connectivity is restored.
-
-## Network Configuration
-Interface names may vary.
-
-| Interface | Role | Purpose |
-|-----------|------|---------|
-| `enp3s0` | Sniffer | Dedicated SPAN/Mirror port (Dark port). |
-| `enp2s0` | Uploader | Management/Outbound access to Google Cloud. |
-
-## Data Schema (UDM Compatible)
-
-The JSON emitted to SecOps is designed for the `unstructuredlogentries:batchCreate` API and is easily parsed into the Unified Data Model (UDM):
-
-```json
-{
-  "timestamp": "2026-02-28T15:51:36.552Z",
-  "flow_id": "a7c8e17cc11126a6",
-  "src_ip": "192.168.1.50",
-  "src_port": 54321,
-  "dst_ip": "8.8.8.8",
-  "dst_port": 443,
-  "protocol": "TCP",
-  "tcp_flags": "SYN|ACK",
-  "bytes": 1540,
-  "packets": 12,
-  "duration_sec": 4.5,
-  "dns_query": "example.com"
-}
-```
+- **BPF Filtering**: A global BPF filter excludes standard network noise (Broadcast, Multicast, ARP, DHCP, mDNS, SSDP).
+- **Rotation & Retention**: Files rotate at 500MB with a 48-hour rolling window.
 
 ## Running Malakocut
 
-### 1. Configure Environment Variables (Mandatory)
-For security, Malakocut requires the following environment variables to be set:
-
+### 1. Configure Environment
 ```bash
-# Your Google SecOps Customer ID (UUID)
-export CHRONICLE_CUSTOMER_ID="your-uuid-here"
-
-# Path to your Google SecOps Service Account Key
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/secops_key.json"
-
-# The Ingestion API URL (Must match your region and instance)
-# Format: https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate
-export CHRONICLE_INGESTION_URL="https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
-
-# Mail Settings (Optional for Daily Summaries and Disk Alerts)
-# Sign up at sendgrid.com and create a Restricted Access API key with 'Mail Send' permission.
-#export SENDGRID_API_KEY="SG.your-api-key-here"
-#export MAIL_FROM="malakocut@example.com"
-#export MAIL_TO="you@example.com"
+export CHRONICLE_CUSTOMER_ID="your-uuid"
+export GOOGLE_APPLICATION_CREDENTIALS="key.json"
 ```
 
-### 2. Optional Configuration
-```bash
-# The Log Type / Ingestion Label (Default: MALAKOCUT_NETWORK_CUSTOM)
-export CHRONICLE_LOG_TYPE="MALAKOCUT_NETWORK_CUSTOM"
-```
+### 2. Execution Flags
+- `-interface`: Sniffing interface (default: `enp3s0`).
+- `-exclude-web`: Toggle to ignore all 80/443 traffic.
+- `-blocklist`: Path to domain blocklist (default: `configs/blocklist.conf`).
+- `-max-flows`: Memory ceiling for flow table (default: 100,000).
 
-### 3. Command Line Flags
-- `-interface`: Specify the sniffing interface (default: `enp3s0`).
-- `-debug`: Enable live flow summaries to stdout and log to `malakocut_debug.log`.
-- `-pcap-filter`: Override the default BPF filter for journaling.
-
-### 3. Execution
 ```bash
 make build
-./malakocut -interface enp3s0 -debug
+sudo ./malakocut -interface enp3s0 -debug
 ```
 
 ## Control CLI
 
-Malakocut includes a command-line tool (`malakocut-cli`) to query the live state of the daemon via a Unix Domain Socket (`/var/run/malakocut.sock`).
+The `malakocut-cli` tool provides real-time visibility via a Unix Domain Socket.
 
 ### 1. System Status
-Get a robust snapshot of uptime, ingestion metrics, and disk health:
 ```bash
-sudo malakocut-cli status
+sudo ./malakocut-cli status
+# Use -resolve to see hostnames for top talkers
+sudo ./malakocut-cli -resolve status
 ```
 
-### 2. Live Top-Talkers (Top)
-View a top-like live-updating visualizer of the most active network flows in memory:
+### 2. Interactive Top
 ```bash
-sudo malakocut-cli top
+sudo ./malakocut-cli top
 ```
 
 **Interactive Shortcuts:**
-- `q`: Quit to shell.
-- `b`: Sort by Bytes (Default).
+- `q`: Quit.
+- `b`: Sort by Bytes.
 - `p`: Sort by Packets.
 - `d`: Sort by Duration.
+- `r`: **Toggle DNS & ICMP Resolution**.
+    - Resolves IP addresses to hostnames.
+    - Resolves ICMP Type/Code to human-readable strings (e.g., `Echo Req`, `Dest Unreach`).
+
+**Visuals**:
+- **Dynamic Scaling**: Column widths adjust automatically to fit your terminal window.
+- **Syntax Highlighting**: Protocol-specific colors and bold headers.
 
 ## Systemd Deployment
-
-To run Malakocut as a persistent background service:
-
-1.  **Install the service**:
-    ```bash
-    sudo make install
-    ```
-2.  **Verify with tests (Optional)**:
-    ```bash
-    make test
-    ```
-3.  **Configure credentials**:
-    Edit `/etc/default/malakocut` and fill in your UUID and keys.
-4.  **Start and Enable**:
-    ```bash
-    sudo systemctl enable --now malakocut
-    ```
-4.  **View Logs**:
-    ```bash
-    tail -f /var/log/malakocut.log
-    # OR
-    journalctl -u malakocut -f
-    ```
+```bash
+sudo make install
+sudo systemctl enable --now malakocut
+```

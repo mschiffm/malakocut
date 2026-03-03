@@ -222,6 +222,41 @@ func showTop() {
 	}
 }
 
+func resolveICMP(proto string, t, c int) string {
+	if !resolveDNS {
+		return fmt.Sprintf("T:%d C:%d", t, c)
+	}
+
+	if proto == "ICMP" { // IPv4
+		switch t {
+		case 0: return "Echo Reply"
+		case 3:
+			switch c {
+			case 0: return "Net Unreach"
+			case 1: return "Host Unreach"
+			case 3: return "Port Unreach"
+			default: return "Dest Unreach"
+			}
+		case 5: return "Redirect"
+		case 8: return "Echo Req"
+		case 11: return "TTL Exceeded"
+		}
+	} else if proto == "ICMPv6" {
+		switch t {
+		case 1: return "Unreach (v6)"
+		case 2: return "Packet Too Big"
+		case 3: return "Time Exceeded"
+		case 128: return "Echo Req (v6)"
+		case 129: return "Echo Reply (v6)"
+		case 133: return "Router Solicit"
+		case 134: return "Router Advert"
+		case 135: return "Neighbor Solicit"
+		case 136: return "Neighbor Advert"
+		}
+	}
+	return fmt.Sprintf("T:%d C:%d", t, c)
+}
+
 func renderTop(client *http.Client, sortBy string) {
 	resp, err := client.Get("http://localhost/flows")
 	if err != nil {
@@ -244,6 +279,20 @@ func renderTop(client *http.Client, sortBy string) {
 		}
 	})
 
+	// Get Terminal Size
+	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || termWidth < 80 {
+		termWidth = 100 // Fallback
+	}
+
+	// Calculate Dynamic Widths
+	// Fixed widths: ID:8, PROTO:6, FLAGS:14, BYTES:10, PKTS:8, DUR:8 = 54 + padding gaps
+	// We divide the remaining space between SRC and DST
+	fixedPart := 8 + 8 + 14 + 10 + 8 + 8 + 10 // headers + gaps
+	rem := termWidth - fixedPart
+	if rem < 20 { rem = 20 }
+	colWidth := rem / 2
+
 	// Clear screen and home cursor
 	fmt.Print("\033[H\033[2J")
 
@@ -258,10 +307,9 @@ func renderTop(client *http.Client, sortBy string) {
 		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	// Column definitions (widths)
-	// ID:8, SRC:22, DST:22, PROTO:6, FLAGS:10, BYTES:10, PKTS:8, DUR:8
 	fmt.Print(COLOR_REV)
-	fmt.Printf("%-8s %-22s %-22s %-6s %-10s %10s %8s %8s",
-		"FLOW ID", "SRC (HOST/IP)", "DST (HOST/IP)", "PROTO", "FLAGS", "BYTES", "PKTS", "DUR (s)")
+	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %8s",
+		"FLOW ID", colWidth, "SRC (HOST/IP)", colWidth, "DST (HOST/IP)", "PROTO", "INFO/FLAGS", "BYTES", "PKTS", "DUR (s)")
 	fmt.Printf("%s\r\n", COLOR_RESET)
 
 	for i, f := range flows {
@@ -273,10 +321,10 @@ func renderTop(client *http.Client, sortBy string) {
 		dstHost := getHostname(f.DstIP)
 
 		src := fmt.Sprintf("%s:%d", srcHost, f.SrcPort)
-		if len(src) > 22 { src = src[:22] }
+		if len(src) > colWidth { src = src[:colWidth-3] + "..." }
 		
 		dst := fmt.Sprintf("%s:%d", dstHost, f.DstPort)
-		if len(dst) > 22 { dst = dst[:22] }
+		if len(dst) > colWidth { dst = dst[:colWidth-3] + "..." }
 
 		// Simple protocol highlighting
 		protoColor := COLOR_RESET
@@ -286,19 +334,19 @@ func renderTop(client *http.Client, sortBy string) {
 			protoColor = COLOR_GREEN
 		}
 
-		// Flags
-		flags := f.TCPFlags
+		// Flags or ICMP Info
+		info := f.TCPFlags
 		if strings.HasPrefix(f.Protocol, "ICMP") {
-			flags = fmt.Sprintf("T:%d C:%d", f.ICMPType, f.ICMPCode)
+			info = resolveICMP(f.Protocol, f.ICMPType, f.ICMPCode)
 		}
-		if len(flags) > 10 { flags = flags[:10] }
+		if len(info) > 14 { info = info[:14] }
 
 		// Print columns one by one to handle colors correctly
 		fmt.Printf("%-8s ", f.FlowID[:8])
-		fmt.Printf("%-22s ", src)
-		fmt.Printf("%-22s ", dst)
-		fmt.Printf("%s%-6s%s ", protoColor, f.Protocol, COLOR_RESET)
-		fmt.Printf("%s%-10s%s ", COLOR_YEL, flags, COLOR_RESET)
+		fmt.Printf("%-*s ", colWidth, src)
+		fmt.Printf("%-*s ", colWidth, dst)
+		fmt.Printf("%s%-8s%s ", protoColor, f.Protocol, COLOR_RESET)
+		fmt.Printf("%s%-14s%s ", COLOR_YEL, info, COLOR_RESET)
 		fmt.Printf("%10d ", f.Bytes)
 		fmt.Printf("%8d ", f.Packets)
 		fmt.Printf("%8.2f\r\n", f.DurationS)
