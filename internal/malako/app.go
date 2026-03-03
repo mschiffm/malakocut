@@ -68,6 +68,10 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		pcapBPF = bpf
 	}
 
+	if cfg.MaxFlows == 0 {
+		cfg.MaxFlows = 100000
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	m := &Malakocut{
 		db:          db,

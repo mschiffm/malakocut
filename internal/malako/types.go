@@ -14,20 +14,21 @@ import (
 
 // FlowMetadata represents our flat, clean JSON payload for SecOps
 type FlowMetadata struct {
-	Timestamp string  `json:"timestamp"`
-	FlowID    string  `json:"flow_id"`
-	SrcIP     string  `json:"src_ip"`
-	SrcPort   int     `json:"src_port,omitempty"`
-	DstIP     string  `json:"dst_ip"`
-	DstPort   int     `json:"dst_port,omitempty"`
-	Protocol  string  `json:"protocol"`
-	TCPFlags  string  `json:"tcp_flags,omitempty"`
-	Bytes     int     `json:"bytes"`
-	Packets   int     `json:"packets"`
-	DurationS float64 `json:"duration_sec"`
-	DNSQuery  string  `json:"dns_query,omitempty"`
-	SNI       string  `json:"sni,omitempty"`
-	HTTPHost  string  `json:"http_host,omitempty"`
+	Timestamp   string  `json:"timestamp"`
+	FlowID      string  `json:"flow_id"`
+	ShredIndex  int     `json:"shred_index"` // Sequence number for long-running sessions
+	SrcIP       string  `json:"src_ip"`
+	SrcPort     int     `json:"src_port,omitempty"`
+	DstIP       string  `json:"dst_ip"`
+	DstPort     int     `json:"dst_port,omitempty"`
+	Protocol    string  `json:"protocol"`
+	TCPFlags    string  `json:"tcp_flags,omitempty"`
+	Bytes       int     `json:"bytes"`
+	Packets     int     `json:"packets"`
+	DurationS   float64 `json:"duration_sec"`
+	DNSQuery    string  `json:"dns_query,omitempty"`
+	SNI         string  `json:"sni,omitempty"`
+	HTTPHost    string  `json:"http_host,omitempty"`
 }
 
 type FlowRecord struct {
@@ -37,6 +38,11 @@ type FlowRecord struct {
 	LastSeen  time.Time
 	Finished  bool
 	IsBlocked bool
+
+	// Checkpoint markers for Delta Exports
+	LastExportBytes   int
+	LastExportPackets int
+	ExportCount       int
 }
 
 type Malakocut struct {
@@ -83,7 +89,8 @@ type Config struct {
 	BatchSize      int
 	FlushInterval  time.Duration
 	IdleTimeout    time.Duration
-	ActiveTimeout  time.Duration
+	ActiveTimeout  time.Duration // Now acts as the Checkpoint Interval
+	MaxFlows       int
 	AuthScope      string
 
 	// Mail Configuration (SendGrid)

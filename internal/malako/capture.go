@@ -132,6 +132,18 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	m.flowMu.RUnlock()
 
 	if !exists {
+		// Enforcement: Do not allow map to exceed MaxFlows (DoS Protection)
+		m.flowMu.RLock()
+		count := len(m.flows)
+		m.flowMu.RUnlock()
+
+		if count >= m.Config.MaxFlows {
+			if m.debugLogger != nil {
+				m.debugLogger.Printf("FLOW TABLE FULL (%d). Dropping packet for %s", count, flowKey)
+			}
+			return
+		}
+
 		hash := sha256.Sum256([]byte(flowKey))
 		flowID := fmt.Sprintf("%x", hash)[:16]
 
@@ -246,29 +258,56 @@ func (m *Malakocut) evictExpiredFlows() {
 		record.mu.Lock()
 
 		idle := now.Sub(record.LastSeen) > m.Config.IdleTimeout
-		active := now.Sub(record.FirstSeen) > m.Config.ActiveTimeout
+		checkpoint := now.Sub(record.FirstSeen) > (time.Duration(record.ExportCount+1) * m.Config.ActiveTimeout)
 
-		if record.Finished || idle || active {
-			if record.IsBlocked {
-				delete(m.flows, id)
-				record.mu.Unlock()
-				continue
-			}
-
-			record.Meta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
-			if m.debugLogger != nil {
-				reason := "finished"
-				if idle {
-					reason = "idle"
-				} else if active {
-					reason = "active"
+		// 1. Permanent Removal: Flow is Idle or Finished
+		if record.Finished || idle {
+			if !record.IsBlocked {
+				record.Meta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
+				
+				// Final Delta Export
+				deltaMeta := record.Meta
+				deltaMeta.Bytes = record.Meta.Bytes - record.LastExportBytes
+				deltaMeta.Packets = record.Meta.Packets - record.LastExportPackets
+				deltaMeta.ShredIndex = record.ExportCount
+				
+				if deltaMeta.Packets > 0 {
+					m.bufferEvent(deltaMeta)
 				}
-				m.debugLogger.Printf("EVICT FLOW [%s] reason: %s, packets: %d",
-					record.Meta.FlowID, reason, record.Meta.Packets)
+				
+				if m.debugLogger != nil {
+					m.debugLogger.Printf("EVICT FLOW [%s] reason: %s, total_packets: %d",
+						record.Meta.FlowID, "idle/finished", record.Meta.Packets)
+				}
 			}
-			m.bufferEvent(record.Meta)
 			delete(m.flows, id)
+			record.mu.Unlock()
+			continue
 		}
+
+		// 2. Periodic Checkpoint: Session is long-running
+		if checkpoint {
+			if !record.IsBlocked {
+				deltaMeta := record.Meta
+				deltaMeta.Bytes = record.Meta.Bytes - record.LastExportBytes
+				deltaMeta.Packets = record.Meta.Packets - record.LastExportPackets
+				deltaMeta.ShredIndex = record.ExportCount
+				deltaMeta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
+
+				if deltaMeta.Packets > 0 {
+					m.bufferEvent(deltaMeta)
+					record.LastExportBytes = record.Meta.Bytes
+					record.LastExportPackets = record.Meta.Packets
+					record.ExportCount++
+					
+					if m.debugLogger != nil {
+						m.debugLogger.Printf("CHECKPOINT FLOW [%s] index: %d, cumulative_bytes: %d",
+							record.Meta.FlowID, record.ExportCount, record.Meta.Bytes)
+					}
+				}
+			}
+		}
+
 		record.mu.Unlock()
 	}
 }
@@ -287,8 +326,18 @@ func (m *Malakocut) EvictFlow(key string) {
 		if record.IsBlocked {
 			return
 		}
+		
 		record.Meta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
-		m.bufferEvent(record.Meta)
+		
+		// Final Delta Export
+		deltaMeta := record.Meta
+		deltaMeta.Bytes = record.Meta.Bytes - record.LastExportBytes
+		deltaMeta.Packets = record.Meta.Packets - record.LastExportPackets
+		deltaMeta.ShredIndex = record.ExportCount
+		
+		if deltaMeta.Packets > 0 {
+			m.bufferEvent(deltaMeta)
+		}
 	}
 }
 

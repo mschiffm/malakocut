@@ -52,6 +52,7 @@ func main() {
 	ifaceFlag := flag.String("interface", DEFAULT_INTERFACE, "Network interface")
 	excludeWeb := flag.Bool("exclude-web", false, "Exclude HTTP/HTTPS (80/443) traffic from both telemetry and journaling")
 	blocklistFlag := flag.String("blocklist", "configs/blocklist.conf", "Path to streaming domain blocklist file")
+	maxFlows := flag.Int("max-flows", 100000, "Maximum number of concurrent flows in memory")
 	
 	// Refined noise filter: Exclude Broadcast, Multicast, ARP, DHCP, mDNS, SSDP, NetBIOS, LLMNR
 	baseFilter := "not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)"
@@ -66,6 +67,7 @@ func main() {
 	log.Printf("[*] Starting malakocut (Interface: %s, Debug: %v)", *ifaceFlag, *debugFlag)
 	log.Printf("[*] Global Filter: %s", finalFilter)
 	log.Printf("[*] Blocklist File: %s", *blocklistFlag)
+	log.Printf("[*] Max Flows: %d", *maxFlows)
 
 	cfg := malako.Config{
 		Interface:     *ifaceFlag,
@@ -81,8 +83,9 @@ func main() {
 		PcapMaxSize:   500 * 1024 * 1024,
 		BatchSize:     100,
 		FlushInterval: 1 * time.Second,
-		IdleTimeout:   60 * time.Second,
-		ActiveTimeout: 120 * time.Second,
+		IdleTimeout:   300 * time.Second, // 5 minutes idle
+		ActiveTimeout: 300 * time.Second, // Checkpoint every 5 minutes
+		MaxFlows:      *maxFlows,
 		AuthScope:     "https://www.googleapis.com/auth/malachite-ingestion",
 		SendGridKey:   sendgridKey,
 		MailFrom:      mailFrom,
