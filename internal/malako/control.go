@@ -72,8 +72,17 @@ func (m *Malakocut) StartControlSocket() {
 		defer m.flowMu.RUnlock()
 
 		snapshot := make([]FlowMetadata, 0, len(m.flows))
+		now := time.Now()
 		for _, f := range m.flows {
-			snapshot = append(snapshot, f.Meta)
+			f.mu.Lock()
+			meta := f.Meta
+			meta.DurationS = f.LastSeen.Sub(f.FirstSeen).Seconds()
+			// If it's a very fresh flow, it might be 0, but usually LastSeen is updated immediately
+			if meta.DurationS == 0 && !f.FirstSeen.IsZero() {
+				meta.DurationS = now.Sub(f.FirstSeen).Seconds()
+			}
+			f.mu.Unlock()
+			snapshot = append(snapshot, meta)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(snapshot)
