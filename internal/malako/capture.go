@@ -147,7 +147,8 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 		flowID := fmt.Sprintf("%x", hash)[:16]
 
 		record = &FlowRecord{
-			FirstSeen: time.Now(),
+			FirstSeen: packet.Metadata().Timestamp,
+			LastSeen:  packet.Metadata().Timestamp,
 			Meta: FlowMetadata{
 				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 				FlowID:    flowID,
@@ -174,7 +175,7 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 		return
 	}
 
-	record.LastSeen = time.Now()
+	record.LastSeen = packet.Metadata().Timestamp
 	record.Meta.Bytes += len(packet.Data())
 	record.Meta.Packets++
 	
