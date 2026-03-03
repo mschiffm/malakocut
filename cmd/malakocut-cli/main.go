@@ -288,6 +288,9 @@ func renderTop(client *http.Client, sortBy string) {
 
 		// Flags
 		flags := f.TCPFlags
+		if strings.HasPrefix(f.Protocol, "ICMP") {
+			flags = fmt.Sprintf("T:%d C:%d", f.ICMPType, f.ICMPCode)
+		}
 		if len(flags) > 10 { flags = flags[:10] }
 
 		// Print columns one by one to handle colors correctly

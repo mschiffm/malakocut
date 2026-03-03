@@ -77,7 +77,7 @@ func TestProcessPacketAndBuffer(t *testing.T) {
 	gopacket.SerializeLayers(buf, gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}, eth, ip, tcp, gopacket.Payload([]byte("hello")))
 	packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
 
-	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil)
+	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil, nil, nil)
 	m.EvictFlow("192.168.1.10:12345-8.8.8.8:443-TCP")
 
 	m.db.View(func(txn *badger.Txn) error {
@@ -177,7 +177,7 @@ func TestBlocklist(t *testing.T) {
 	gopacket.SerializeLayers(buf, opts, eth, ip, udp, dns)
 	packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
 
-	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeUDP}, ip, nil, nil, udp)
+	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeUDP}, ip, nil, nil, udp, nil, nil)
 
 	key := "1.2.3.4:12345-8.8.8.8:53-UDP"
 	m.flowMu.RLock()

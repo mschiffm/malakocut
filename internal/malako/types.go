@@ -29,6 +29,8 @@ type FlowMetadata struct {
 	DNSQuery    string  `json:"dns_query,omitempty"`
 	SNI         string  `json:"sni,omitempty"`
 	HTTPHost    string  `json:"http_host,omitempty"`
+	ICMPType    int     `json:"icmp_type,omitempty"`
+	ICMPCode    int     `json:"icmp_code,omitempty"`
 }
 
 type FlowRecord struct {
