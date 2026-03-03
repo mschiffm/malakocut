@@ -155,6 +155,11 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	record.mu.Lock()
 	defer record.mu.Unlock()
 
+	// If already blocked, skip processing
+	if record.IsBlocked {
+		return
+	}
+
 	record.LastSeen = time.Now()
 	record.Meta.Bytes += len(packet.Data())
 	record.Meta.Packets++
@@ -194,7 +199,20 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 		if dnsLayer := packet.Layer(layers.LayerTypeDNS); dnsLayer != nil {
 			dns := dnsLayer.(*layers.DNS)
 			if len(dns.Questions) > 0 {
-				record.Meta.DNSQuery = string(dns.Questions[0].Name)
+				query := string(dns.Questions[0].Name)
+				record.Meta.DNSQuery = query
+				
+				// Check blocklist
+				lowerQuery := strings.ToLower(query)
+				for _, blocked := range m.Blocklist {
+					if strings.Contains(lowerQuery, blocked) {
+						if m.debugLogger != nil {
+							m.debugLogger.Printf("BLOCKING FLOW [%s] due to blocklist match: %s", record.Meta.FlowID, query)
+						}
+						record.IsBlocked = true
+						break
+					}
+				}
 			}
 		}
 	}
@@ -231,6 +249,12 @@ func (m *Malakocut) evictExpiredFlows() {
 		active := now.Sub(record.FirstSeen) > m.Config.ActiveTimeout
 
 		if record.Finished || idle || active {
+			if record.IsBlocked {
+				delete(m.flows, id)
+				record.mu.Unlock()
+				continue
+			}
+
 			record.Meta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
 			if m.debugLogger != nil {
 				reason := "finished"
@@ -259,9 +283,12 @@ func (m *Malakocut) EvictFlow(key string) {
 
 	if exists {
 		record.mu.Lock()
+		defer record.mu.Unlock()
+		if record.IsBlocked {
+			return
+		}
 		record.Meta.DurationS = record.LastSeen.Sub(record.FirstSeen).Seconds()
 		m.bufferEvent(record.Meta)
-		record.mu.Unlock()
 	}
 }
 

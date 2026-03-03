@@ -139,3 +139,63 @@ func TestSecOpsParserCompatibility(t *testing.T) {
 		return nil
 	})
 }
+
+func TestBlocklist(t *testing.T) {
+	tmpDir, _ := os.MkdirTemp("", "malakocut-block-*")
+	defer os.RemoveAll(tmpDir)
+
+	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}})
+	defer m.Close()
+	m.Blocklist = []string{"netflix.com"}
+
+	eth := &layers.Ethernet{
+		SrcMAC: net.HardwareAddr{0, 1, 2, 3, 4, 5},
+		DstMAC: net.HardwareAddr{6, 7, 8, 9, 10, 11},
+		EthernetType: layers.EthernetTypeIPv4,
+	}
+	ip := &layers.IPv4{
+		Version:  4,
+		IHL:      5,
+		TTL:      64,
+		SrcIP:    net.IP{1, 2, 3, 4},
+		DstIP:    net.IP{8, 8, 8, 8},
+		Protocol: layers.IPProtocolUDP,
+	}
+	udp := &layers.UDP{SrcPort: 12345, DstPort: 53}
+	udp.SetNetworkLayerForChecksum(ip)
+	dns := &layers.DNS{
+		Questions: []layers.DNSQuestion{
+			{
+				Name:  []byte("www.netflix.com"),
+				Type:  layers.DNSTypeA,
+				Class: layers.DNSClassIN,
+			},
+		},
+	}
+	buf := gopacket.NewSerializeBuffer()
+	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
+	gopacket.SerializeLayers(buf, opts, eth, ip, udp, dns)
+	packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
+
+	m.processPacket(packet, layers.LayerTypeEthernet)
+
+	key := "1.2.3.4:12345-8.8.8.8:53-UDP"
+	m.flowMu.RLock()
+	record := m.flows[key]
+	m.flowMu.RUnlock()
+
+	if record == nil {
+		t.Fatalf("flow not created. flows in table: %v", m.flows)
+	}
+	if !record.IsBlocked { t.Error("flow should be blocked") }
+
+	// Ensure blocked flows aren't buffered
+	m.EvictFlow(key)
+	m.db.View(func(txn *badger.Txn) error {
+		it := txn.NewIterator(badger.DefaultIteratorOptions)
+		defer it.Close()
+		it.Rewind()
+		if it.Valid() { t.Error("blocked flow was buffered") }
+		return nil
+	})
+}

@@ -51,6 +51,7 @@ func main() {
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
 	ifaceFlag := flag.String("interface", DEFAULT_INTERFACE, "Network interface")
 	excludeWeb := flag.Bool("exclude-web", false, "Exclude HTTP/HTTPS (80/443) traffic from both telemetry and journaling")
+	blocklistFlag := flag.String("blocklist", "configs/blocklist.conf", "Path to streaming domain blocklist file")
 	
 	// Refined noise filter: Exclude Broadcast, Multicast, ARP, DHCP, mDNS, SSDP, NetBIOS, LLMNR
 	baseFilter := "not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)"
@@ -64,12 +65,14 @@ func main() {
 
 	log.Printf("[*] Starting malakocut (Interface: %s, Debug: %v)", *ifaceFlag, *debugFlag)
 	log.Printf("[*] Global Filter: %s", finalFilter)
+	log.Printf("[*] Blocklist File: %s", *blocklistFlag)
 
 	cfg := malako.Config{
 		Interface:     *ifaceFlag,
 		BufferPath:    BUFFER_PATH,
 		PcapDir:       PCAP_DIR,
 		PcapFilter:    finalFilter,
+		BlocklistPath: *blocklistFlag,
 		DebugEnable:   *debugFlag,
 		IngestionURL:  ingestionURL,
 		CustomerID:    customerID,

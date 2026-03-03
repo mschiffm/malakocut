@@ -36,6 +36,7 @@ type FlowRecord struct {
 	FirstSeen time.Time
 	LastSeen  time.Time
 	Finished  bool
+	IsBlocked bool
 }
 
 type Malakocut struct {
@@ -44,6 +45,7 @@ type Malakocut struct {
 	ctx         context.Context
 	cancel      context.CancelFunc
 	debugLogger *log.Logger
+	Blocklist   []string
 
 	// Flow Table
 	flows  map[string]*FlowRecord
@@ -70,6 +72,7 @@ type Config struct {
 	BufferPath     string
 	PcapDir        string
 	PcapFilter     string
+	BlocklistPath  string
 	HTTPClient     *http.Client
 	DebugEnable    bool
 	IngestionURL   string

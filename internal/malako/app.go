@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -84,11 +85,34 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		Config:          cfg,
 	}
 
+	if cfg.BlocklistPath != "" {
+		if err := m.loadBlocklist(cfg.BlocklistPath); err != nil {
+			log.Printf("[!] Warning: failed to load blocklist: %v", err)
+		}
+	}
+
 	if cfg.DebugEnable {
 		log.Printf("[DEBUG] Configured Ingestion URL: %s", cfg.IngestionURL)
 	}
 
 	return m, nil
+}
+
+func (m *Malakocut) loadBlocklist(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		m.Blocklist = append(m.Blocklist, strings.ToLower(line))
+	}
+	log.Printf("[*] Loaded %d streaming domains into blocklist", len(m.Blocklist))
+	return nil
 }
 
 func (m *Malakocut) Close() {
