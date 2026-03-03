@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	"malakocut/internal/malako"
@@ -27,14 +29,32 @@ const (
 	COLOR_REV   = "\033[7m"
 )
 
+var (
+	resolveDNS bool
+	dnsCache   = make(map[string]string)
+	cacheMu    sync.RWMutex
+)
+
 func main() {
 	if len(os.Args) < 2 {
 		usage()
 		return
 	}
 
-	command := os.Args[1]
-	if command == "-h" || command == "--help" || command == "-help" || command == "help" {
+	// Simple flag parsing for -resolve
+	args := os.Args[1:]
+	command := ""
+	for _, arg := range args {
+		if arg == "-resolve" {
+			resolveDNS = true
+			continue
+		}
+		if command == "" && !strings.HasPrefix(arg, "-") {
+			command = arg
+		}
+	}
+
+	if command == "-h" || command == "--help" || command == "-help" || command == "help" || command == "" {
 		usage()
 		return
 	}
@@ -51,7 +71,9 @@ func main() {
 
 func usage() {
 	fmt.Printf("%sMalakocut Control CLI%s\r\n", COLOR_BOLD+COLOR_CYAN, COLOR_RESET)
-	fmt.Println("Usage: malakocut-cli [status|top|help]")
+	fmt.Println("Usage: malakocut-cli [-resolve] [status|top|help]")
+	fmt.Println("\r\nOptions:")
+	fmt.Println("  -resolve  Enable reverse DNS resolution for IP addresses")
 	fmt.Println("\r\nCommands:")
 	fmt.Printf("  %sstatus%s    Show daemon uptime, disk health, and ingestion metrics.\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Printf("  %stop%s       Interactive live-updating flow visualizer.\r\n", COLOR_BOLD, COLOR_RESET)
@@ -60,6 +82,36 @@ func usage() {
 	fmt.Println("  b         Sort by Bytes (Volume)")
 	fmt.Println("  p         Sort by Packets (Frequency)")
 	fmt.Println("  d         Sort by Duration (Session Length)")
+	fmt.Println("  r         Toggle DNS resolution")
+}
+
+func getHostname(ip string) string {
+	if !resolveDNS {
+		return ip
+	}
+
+	cacheMu.RLock()
+	name, exists := dnsCache[ip]
+	cacheMu.RUnlock()
+
+	if exists {
+		return name
+	}
+
+	// Async lookup to prevent UI blocking
+	go func(addr string) {
+		names, err := net.LookupAddr(addr)
+		cacheMu.Lock()
+		if err == nil && len(names) > 0 {
+			// Trim trailing dot
+			dnsCache[addr] = strings.TrimSuffix(names[0], ".")
+		} else {
+			dnsCache[addr] = addr // Cache the IP so we don't retry constantly
+		}
+		cacheMu.Unlock()
+	}(ip)
+
+	return ip // Return IP while lookup happens
 }
 
 func getClient() *http.Client {
@@ -160,6 +212,8 @@ func showTop() {
 				sortBy = "packets"
 			case 'd':
 				sortBy = "duration"
+			case 'r':
+				resolveDNS = !resolveDNS
 			}
 			renderTop(client, sortBy)
 		case <-ticker.C:
@@ -194,20 +248,20 @@ func renderTop(client *http.Client, sortBy string) {
 	fmt.Print("\033[H\033[2J")
 
 	// Header lines
-	fmt.Printf("%sMalakocut Top%s - %s | Active Flows: %s%d%s | Sort: %s%s%s\r\n",
+	fmt.Printf("%sMalakocut Top%s - %s | Active Flows: %s%d%s | Sort: %s%s%s | DNS: %v\r\n",
 		COLOR_BOLD+COLOR_CYAN, COLOR_RESET,
 		time.Now().Format(time.Kitchen),
 		COLOR_GREEN, len(flows), COLOR_RESET,
-		COLOR_YEL, sortBy, COLOR_RESET)
+		COLOR_YEL, sortBy, COLOR_RESET, resolveDNS)
 	
-	fmt.Printf("Shortcuts: %sq%suit, %sb%sytes, %sp%sackets, %sd%suration\r\n\r\n",
-		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("Shortcuts: %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %sr%sesolve\r\n\r\n",
+		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	// Column definitions (widths)
 	// ID:8, SRC:22, DST:22, PROTO:6, FLAGS:10, BYTES:10, PKTS:8, DUR:8
 	fmt.Print(COLOR_REV)
 	fmt.Printf("%-8s %-22s %-22s %-6s %-10s %10s %8s %8s",
-		"FLOW ID", "SRC IP:PORT", "DST IP:PORT", "PROTO", "FLAGS", "BYTES", "PKTS", "DUR (s)")
+		"FLOW ID", "SRC (HOST/IP)", "DST (HOST/IP)", "PROTO", "FLAGS", "BYTES", "PKTS", "DUR (s)")
 	fmt.Printf("%s\r\n", COLOR_RESET)
 
 	for i, f := range flows {
@@ -215,10 +269,13 @@ func renderTop(client *http.Client, sortBy string) {
 			break
 		}
 		
-		src := fmt.Sprintf("%s:%d", f.SrcIP, f.SrcPort)
+		srcHost := getHostname(f.SrcIP)
+		dstHost := getHostname(f.DstIP)
+
+		src := fmt.Sprintf("%s:%d", srcHost, f.SrcPort)
 		if len(src) > 22 { src = src[:22] }
 		
-		dst := fmt.Sprintf("%s:%d", f.DstIP, f.DstPort)
+		dst := fmt.Sprintf("%s:%d", dstHost, f.DstPort)
 		if len(dst) > 22 { dst = dst[:22] }
 
 		// Simple protocol highlighting
