@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"malakocut/internal/malako"
+	"malakocut/internal/malakocut"
 )
 
 const (
@@ -32,10 +32,6 @@ func main() {
 		ingestionURL = "https://malachiteingestion-pa.googleapis.com/v2/unstructuredlogentries:batchCreate"
 	}
 
-	if customerID == "" || ingestionURL == "" {
-		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and CHRONICLE_INGESTION_URL must be set in environment")
-	}
-
 	// Mail Settings
 	sendgridKey := os.Getenv("SENDGRID_API_KEY")
 	mailFrom := os.Getenv("MAIL_FROM")
@@ -53,11 +49,16 @@ func main() {
 	excludeWeb := flag.Bool("exclude-web", false, "Exclude HTTP/HTTPS (80/443) traffic from both telemetry and journaling")
 	blocklistFlag := flag.String("blocklist", "configs/blocklist.conf", "Path to streaming domain blocklist file")
 	maxFlows := flag.Int("max-flows", 100000, "Maximum number of concurrent flows in memory")
-	
+	exporterFlag := flag.String("exporter", "none", "Telemetry exporter: 'secops' or 'none'")
+	flag.Parse()
+
+	if *exporterFlag == "secops" && (customerID == "" || ingestionURL == "") {
+		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and CHRONICLE_INGESTION_URL must be set for SecOps exporter")
+	}
+
 	// Refined noise filter: Exclude Broadcast, Multicast, ARP, DHCP, mDNS, SSDP, NetBIOS, LLMNR
 	baseFilter := "not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)"
 	filterFlag := flag.String("filter", baseFilter, "Global BPF filter for both telemetry and PCAP journaling")
-	flag.Parse()
 
 	finalFilter := *filterFlag
 	if *excludeWeb {
@@ -68,8 +69,9 @@ func main() {
 	log.Printf("[*] Global Filter: %s", finalFilter)
 	log.Printf("[*] Blocklist File: %s", *blocklistFlag)
 	log.Printf("[*] Max Flows: %d", *maxFlows)
+	log.Printf("[*] Exporter: %s", *exporterFlag)
 
-	cfg := malako.Config{
+	cfg := malakocut.Config{
 		Interface:     *ifaceFlag,
 		BufferPath:    BUFFER_PATH,
 		PcapDir:       PCAP_DIR,
@@ -79,6 +81,7 @@ func main() {
 		IngestionURL:  ingestionURL,
 		CustomerID:    customerID,
 		LogType:       logType,
+		ExporterType:  *exporterFlag,
 		PcapRetention: 48 * time.Hour,
 		PcapMaxSize:   500 * 1024 * 1024,
 		BatchSize:     100,
@@ -93,7 +96,7 @@ func main() {
 		ControlSocket: "/var/run/malakocut.sock",
 	}
 
-	m, err := malako.NewMalakocut(cfg)
+	m, err := malakocut.NewMalakocut(cfg)
 	if err != nil {
 		log.Fatalf("[!] Initialization failed: %v", err)
 	}

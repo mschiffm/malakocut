@@ -6,9 +6,10 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/malakocut
+# Ensure directories exist
+ExecStartPre=/usr/bin/mkdir -p /var/lib/malakocut/buffer /var/lib/malakocut/pcap
 EnvironmentFile=/etc/default/malakocut
-ExecStart=/usr/local/bin/malakocut -interface enp3s0
+ExecStart=/usr/local/bin/malakocut -interface ${MALAKOCUT_INTERFACE} -exporter ${MALAKOCUT_EXPORTER}
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/malakocut.log
