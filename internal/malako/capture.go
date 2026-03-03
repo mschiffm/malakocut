@@ -33,36 +33,9 @@ func (m *Malakocut) StartListener(iface string) error {
 	}
 
 	source := gopacket.NewPacketSource(handle, linkType)
-	source.Lazy = true
 	log.Printf("[*] malakocut listener active on %s (AF_PACKET zero-copy, promisc)", iface)
 
-	for {
-		select {
-		case <-m.ctx.Done():
-			return nil
-		case packet := <-source.Packets():
-			if packet == nil {
-				continue
-			}
-			// Apply Global Filter
-			if m.pcapBPF != nil {
-				if !m.pcapBPF.Matches(packet.Metadata().CaptureInfo, packet.Data()) {
-					continue // Drop noise immediately
-				}
-			}
-
-			// Send to PCAP Journaler
-			select {
-			case m.pcapChan <- packet:
-			default:
-			}
-			
-			go m.processPacket(packet, linkType)
-		}
-	}
-}
-
-func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.LayerType) {
+	// Pre-allocate layers and parser for synchronous processing
 	var eth layers.Ethernet
 	var dot1q layers.Dot1Q
 	var ip4 layers.IPv4
@@ -72,15 +45,44 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	var icmp4 layers.ICMPv4
 	var icmp6 layers.ICMPv6
 	var payload gopacket.Payload
-
-	parser := gopacket.NewDecodingLayerParser(firstLayer, &eth, &dot1q, &ip4, &ip6, &tcp, &udp, &icmp4, &icmp6, &payload)
+	parser := gopacket.NewDecodingLayerParser(linkType, &eth, &dot1q, &ip4, &ip6, &tcp, &udp, &icmp4, &icmp6, &payload)
 	decoded := []gopacket.LayerType{}
 
-	_ = parser.DecodeLayers(packet.Data(), &decoded)
+	for {
+		select {
+		case <-m.ctx.Done():
+			return nil
+		case packet := <-source.Packets():
+			if packet == nil {
+				continue
+			}
 
+			// 1. Global BPF Filtering (Noise reduction)
+			if m.pcapBPF != nil {
+				if !m.pcapBPF.Matches(packet.Metadata().CaptureInfo, packet.Data()) {
+					continue
+				}
+			}
+
+			// 2. PCAP Journaling (Asynchronous)
+			select {
+			case m.pcapChan <- packet:
+			default:
+				// If journaler is backed up, we skip to prioritize telemetry
+			}
+
+			// 3. Telemetry Processing (Synchronous to avoid AF_PACKET buffer races)
+			decoded = decoded[:0] // Reset slice without reallocating
+			_ = parser.DecodeLayers(packet.Data(), &decoded)
+			m.handleDecodedPacket(packet, decoded, &ip4, &ip6, &tcp, &udp)
+		}
+	}
+}
+
+func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopacket.LayerType, ip4 *layers.IPv4, ip6 *layers.IPv6, tcp *layers.TCP, udp *layers.UDP) {
 	var srcIP, dstIP, protocol string
 	var srcPort, dstPort int
-	var l3Found, l4Found bool
+	var l3Found bool
 	var isTCP bool
 	var tcpFinished bool
 
@@ -99,7 +101,6 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 		case layers.LayerTypeTCP:
 			srcPort = int(tcp.SrcPort)
 			dstPort = int(tcp.DstPort)
-			l4Found = true
 			isTCP = true
 			if tcp.FIN || tcp.RST {
 				tcpFinished = true
@@ -107,13 +108,10 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 		case layers.LayerTypeUDP:
 			srcPort = int(udp.SrcPort)
 			dstPort = int(udp.DstPort)
-			l4Found = true
 		case layers.LayerTypeICMPv4:
 			protocol = "ICMP"
-			l4Found = true
 		case layers.LayerTypeICMPv6:
 			protocol = "ICMPv6"
-			l4Found = true
 		}
 	}
 
@@ -121,12 +119,8 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 		return
 	}
 
-	if !l4Found && m.debugLogger != nil {
-		m.debugLogger.Printf("Captured IP packet with no TCP/UDP: %s -> %s (%s)", srcIP, dstIP, protocol)
-	}
-
 	flowKey := fmt.Sprintf("%s:%d-%s:%d-%s", srcIP, srcPort, dstIP, dstPort, protocol)
-
+	
 	m.flowMu.RLock()
 	record, exists := m.flows[flowKey]
 	m.flowMu.RUnlock()
@@ -138,9 +132,6 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 		m.flowMu.RUnlock()
 
 		if count >= m.Config.MaxFlows {
-			if m.debugLogger != nil {
-				m.debugLogger.Printf("FLOW TABLE FULL (%d). Dropping packet for %s", count, flowKey)
-			}
 			return
 		}
 
@@ -167,7 +158,6 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	record.mu.Lock()
 	defer record.mu.Unlock()
 
-	// If already blocked, skip processing
 	if record.IsBlocked {
 		return
 	}
@@ -179,28 +169,13 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 	m.RecordActivity(srcIP, srcPort, dstPort, len(packet.Data()))
 
 	if isTCP {
-		var flags []string
-		if tcp.SYN { flags = append(flags, "SYN") }
-		if tcp.ACK { flags = append(flags, "ACK") }
-		if tcp.FIN { flags = append(flags, "FIN") }
-		if tcp.RST { flags = append(flags, "RST") }
-		if tcp.PSH { flags = append(flags, "PSH") }
-		if tcp.URG { flags = append(flags, "URG") }
-
-		newFlags := strings.Join(flags, "|")
-		if record.Meta.TCPFlags == "" {
-			record.Meta.TCPFlags = newFlags
-		} else {
-			current := strings.Split(record.Meta.TCPFlags, "|")
-			for _, f := range flags {
-				found := false
-				for _, cf := range current {
-					if cf == f { found = true; break }
-				}
-				if !found { current = append(current, f) }
-			}
-			record.Meta.TCPFlags = strings.Join(current, "|")
-		}
+		// Update flags (bitwise logic)
+		if tcp.SYN { m.updateFlag(record, "SYN") }
+		if tcp.ACK { m.updateFlag(record, "ACK") }
+		if tcp.FIN { m.updateFlag(record, "FIN") }
+		if tcp.RST { m.updateFlag(record, "RST") }
+		if tcp.PSH { m.updateFlag(record, "PSH") }
+		if tcp.URG { m.updateFlag(record, "URG") }
 
 		if tcpFinished {
 			record.Finished = true
@@ -218,9 +193,6 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 				lowerQuery := strings.ToLower(query)
 				for _, blocked := range m.Blocklist {
 					if strings.Contains(lowerQuery, blocked) {
-						if m.debugLogger != nil {
-							m.debugLogger.Printf("BLOCKING FLOW [%s] due to blocklist match: %s", record.Meta.FlowID, query)
-						}
 						record.IsBlocked = true
 						break
 					}
@@ -228,10 +200,15 @@ func (m *Malakocut) processPacket(packet gopacket.Packet, firstLayer gopacket.La
 			}
 		}
 	}
+}
 
-	if m.debugLogger != nil && record.Meta.Packets == 1 {
-		m.debugLogger.Printf("NEW FLOW [%s] %s:%d -> %s:%d (%s)",
-			record.Meta.FlowID, srcIP, srcPort, dstIP, dstPort, protocol)
+func (m *Malakocut) updateFlag(record *FlowRecord, flag string) {
+	if record.Meta.TCPFlags == "" {
+		record.Meta.TCPFlags = flag
+		return
+	}
+	if !strings.Contains(record.Meta.TCPFlags, flag) {
+		record.Meta.TCPFlags += "|" + flag
 	}
 }
 
