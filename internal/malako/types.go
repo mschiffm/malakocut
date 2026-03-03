@@ -26,6 +26,7 @@ type FlowMetadata struct {
 	Bytes       int     `json:"bytes"`
 	Packets     int     `json:"packets"`
 	DurationS   float64 `json:"duration_sec"`
+	IdleS       float64 `json:"idle_sec"`
 	DNSQuery    string  `json:"dns_query,omitempty"`
 	SNI         string  `json:"sni,omitempty"`
 	HTTPHost    string  `json:"http_host,omitempty"`

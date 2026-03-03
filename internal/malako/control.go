@@ -77,6 +77,7 @@ func (m *Malakocut) StartControlSocket() {
 			f.mu.Lock()
 			meta := f.Meta
 			meta.DurationS = f.LastSeen.Sub(f.FirstSeen).Seconds()
+			meta.IdleS = now.Sub(f.LastSeen).Seconds()
 			// If it's a very fresh flow, it might be 0, but usually LastSeen is updated immediately
 			if meta.DurationS == 0 && !f.FirstSeen.IsZero() {
 				meta.DurationS = now.Sub(f.FirstSeen).Seconds()
