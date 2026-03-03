@@ -85,6 +85,7 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 		bytesPerIP:      make(map[string]int64),
 		bytesPerSrcPort: make(map[int]int64),
 		bytesPerDstPort: make(map[int]int64),
+		dnsCounts:       make(map[string]int64),
 		startTime:       time.Now(),
 		Config:          cfg,
 	}

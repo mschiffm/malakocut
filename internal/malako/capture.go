@@ -166,6 +166,10 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 		m.flowMu.Lock()
 		m.flows[flowKey] = record
 		m.flowMu.Unlock()
+
+		m.statsMu.Lock()
+		m.totalFlows++
+		m.statsMu.Unlock()
 	}
 
 	record.mu.Lock()
@@ -207,6 +211,10 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 				query := string(dns.Questions[0].Name)
 				record.Meta.DNSQuery = query
 				
+				m.statsMu.Lock()
+				m.dnsCounts[query]++
+				m.statsMu.Unlock()
+
 				// Check blocklist
 				lowerQuery := strings.ToLower(query)
 				for _, blocked := range m.Blocklist {

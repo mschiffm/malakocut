@@ -69,7 +69,9 @@ type Malakocut struct {
 	bytesPerIP      map[string]int64
 	bytesPerSrcPort map[int]int64
 	bytesPerDstPort map[int]int64
+	dnsCounts       map[string]int64
 	totalEvents     int64
+	totalFlows      int64
 	startTime       time.Time
 
 	// Configuration

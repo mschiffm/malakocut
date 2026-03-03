@@ -26,59 +26,65 @@ func (m *Malakocut) GenerateDailySummary() string {
 	m.statsMu.Lock()
 	defer m.statsMu.Unlock()
 
+	var totalBytes int64
+	for _, b := range m.bytesPerIP {
+		totalBytes += b
+	}
+
 	var sb strings.Builder
 	sb.WriteString("Malakocut Daily NDR Summary\n")
 	sb.WriteString("===========================\n")
-	sb.WriteString("Report Period: " + m.startTime.Format(time.RFC822) + " to " + time.Now().Format(time.RFC822) + "\n")
-	sb.WriteString("Total Events Sent to SecOps: " + fmt.Sprintf("%d", m.totalEvents) + "\n\n")
+	sb.WriteString("Report Period:  " + m.startTime.Format(time.RFC822) + " to " + time.Now().Format(time.RFC822) + "\n")
+	sb.WriteString(fmt.Sprintf("Total Flows:    %d\n", m.totalFlows))
+	sb.WriteString(fmt.Sprintf("Total Bytes:    %.2f GB\n", float64(totalBytes)/(1024*1024*1024)))
+	sb.WriteString(fmt.Sprintf("SecOps Events:  %d\n\n", m.totalEvents))
 
-	sb.WriteString("Top 10 Talkers (by Volume):\n")
-	sb.WriteString("---------------------------\n")
-
+	// Helper for Top N sorting
 	type kv struct {
 		Key   string
 		Value int64
 	}
-	var ss []kv
-	for k, v := range m.bytesPerIP {
-		ss = append(ss, kv{k, v})
+	getTopN := func(m map[string]int64, n int) []kv {
+		var ss []kv
+		for k, v := range m { ss = append(ss, kv{k, v}) }
+		sort.Slice(ss, func(i, j int) bool { return ss[i].Value > ss[j].Value })
+		if len(ss) > n { return ss[:n] }
+		return ss
 	}
 
-	sort.Slice(ss, func(i, j int) bool {
-		return ss[i].Value > ss[j].Value
-	})
-
-	for i, kv := range ss {
-		if i >= 10 {
-			break
-		}
-		sb.WriteString(fmt.Sprintf("%d. %-15s : %.2f MB\n", i+1, kv.Key, float64(kv.Value)/(1024*1024)))
+	sb.WriteString("Top 10 Talkers (by Volume):\n")
+	sb.WriteString("---------------------------\n")
+	for i, item := range getTopN(m.bytesPerIP, 10) {
+		sb.WriteString(fmt.Sprintf("%d. %-15s : %.2f MB\n", i+1, item.Key, float64(item.Value)/(1024*1024)))
 	}
 
-	sb.WriteString("\nTop Destination Ports:\n")
-	sb.WriteString("----------------------\n")
-	type portKV struct {
-		Key   int
-		Value int64
-	}
-	var ps []portKV
+	sb.WriteString("\nTop 10 Destination Ports:\n")
+	sb.WriteString("-------------------------\n")
+	var portMap = make(map[string]int64)
 	for k, v := range m.bytesPerDstPort {
 		if k == 0 { continue }
-		ps = append(ps, portKV{k, v})
+		portMap[fmt.Sprintf("%d", k)] = v
 	}
-	sort.Slice(ps, func(i, j int) bool {
-		return ps[i].Value > ps[j].Value
-	})
-	for i, kv := range ps {
-		if i >= 10 { break }
-		sb.WriteString(fmt.Sprintf("%d. Port %-5d : %.2f MB\n", i+1, kv.Key, float64(kv.Value)/(1024*1024)))
+	for i, item := range getTopN(portMap, 10) {
+		sb.WriteString(fmt.Sprintf("%d. Port %-5s : %.2f MB\n", i+1, item.Key, float64(item.Value)/(1024*1024)))
 	}
+
+	sb.WriteString("\nTop 10 DNS Queries:\n")
+	sb.WriteString("-------------------\n")
+	for i, item := range getTopN(m.dnsCounts, 10) {
+		sb.WriteString(fmt.Sprintf("%d. %-30s : %d hits\n", i+1, item.Key, item.Value))
+	}
+
+	sb.WriteString("\n--- System Context ---\n")
+	sb.WriteString(m.GetSystemContext())
 
 	// Reset for next period
 	m.bytesPerIP = make(map[string]int64)
 	m.bytesPerSrcPort = make(map[int]int64)
 	m.bytesPerDstPort = make(map[int]int64)
+	m.dnsCounts = make(map[string]int64)
 	m.totalEvents = 0
+	m.totalFlows = 0
 	m.startTime = time.Now()
 
 	return sb.String()
