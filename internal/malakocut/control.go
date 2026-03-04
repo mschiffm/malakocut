@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"golang.org/x/sys/unix"
 )
 
 type SystemStatus struct {
@@ -35,10 +36,9 @@ func (m *Malakocut) StartControlSocket() {
 
 	// Status Endpoint
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		m.statsMu.Lock()
-		events := m.totalEvents
+		events := m.totalEvents.Load()
 		
-		// Snapshot top ports
+		m.statsMu.Lock()
 		srcPorts := make(map[int]int64)
 		for k, v := range m.bytesPerSrcPort {
 			srcPorts[k] = v
@@ -90,16 +90,19 @@ func (m *Malakocut) StartControlSocket() {
 	})
 
 	server := &http.Server{Handler: mux}
+	
+	// Set umask to ensure socket is created with restricted permissions (0660)
+	// umask is bitwise, so 0117 means 0777 & ~0117 = 0660
+	oldUmask := unix.Umask(0117)
 	unixListener, err := net.Listen("unix", socketPath)
+	unix.Umask(oldUmask)
+
 	if err != nil {
 		log.Printf("[!] Failed to start control socket: %v", err)
 		return
 	}
 
-	// Set permissions so root/group can access
-	os.Chmod(socketPath, 0660)
-
-	log.Printf("[*] Control socket active at %s", socketPath)
+	log.Printf("[*] Control socket active at %s (0660)", socketPath)
 
 	go func() {
 		if err := server.Serve(unixListener); err != nil && err != http.ErrServerClosed {

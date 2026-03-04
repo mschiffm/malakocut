@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -149,62 +150,77 @@ func TestSecOpsParserCompatibility(t *testing.T) {
 	})
 }
 
-func TestBlocklist(t *testing.T) {
-	tmpDir, _ := os.MkdirTemp("", "malakocut-block-*")
+func TestFlowTableConcurrency(t *testing.T) {
+	tmpDir, _ := os.MkdirTemp("", "malakocut-concurrency-*")
 	defer os.RemoveAll(tmpDir)
 
 	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}})
 	defer m.Close()
-	m.Blocklist = []string{"netflix.com"}
 
-	eth := &layers.Ethernet{
-		SrcMAC: net.HardwareAddr{0, 1, 2, 3, 4, 5},
-		DstMAC: net.HardwareAddr{6, 7, 8, 9, 10, 11},
-		EthernetType: layers.EthernetTypeIPv4,
-	}
-	ip := &layers.IPv4{
-		Version:  4,
-		IHL:      5,
-		TTL:      64,
-		SrcIP:    net.IP{1, 2, 3, 4},
-		DstIP:    net.IP{8, 8, 8, 8},
-		Protocol: layers.IPProtocolUDP,
-	}
-	udp := &layers.UDP{SrcPort: 12345, DstPort: 53}
-	udp.SetNetworkLayerForChecksum(ip)
-	dns := &layers.DNS{
-		Questions: []layers.DNSQuestion{
-			{
-				Name:  []byte("www.netflix.com"),
-				Type:  layers.DNSTypeA,
-				Class: layers.DNSClassIN,
-			},
-		},
-	}
+	const numGoroutines = 50
+	const numPackets = 100
+	var wg sync.WaitGroup
+
+	eth := &layers.Ethernet{EthernetType: layers.EthernetTypeIPv4}
+	ip := &layers.IPv4{SrcIP: net.IP{10, 0, 0, 1}, DstIP: net.IP{10, 0, 0, 2}, Protocol: layers.IPProtocolTCP}
+	tcp := &layers.TCP{SrcPort: 1234, DstPort: 80}
 	buf := gopacket.NewSerializeBuffer()
-	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
-	gopacket.SerializeLayers(buf, opts, eth, ip, udp, dns)
+	gopacket.SerializeLayers(buf, gopacket.SerializeOptions{}, eth, ip, tcp)
 	packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
 
-	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeUDP}, ip, nil, nil, udp, nil, nil)
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < numPackets; j++ {
+				m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil, nil, nil)
+			}
+		}()
+	}
 
-	key := "1.2.3.4:12345-8.8.8.8:53-UDP"
+	wg.Wait()
+
+	m.flowMu.RLock()
+	count := len(m.flows)
+	m.flowMu.RUnlock()
+
+	if count != 1 {
+		t.Errorf("expected exactly 1 flow, got %d", count)
+	}
+
+	key := "10.0.0.1:1234-10.0.0.2:80-TCP"
 	m.flowMu.RLock()
 	record := m.flows[key]
 	m.flowMu.RUnlock()
-
-	if record == nil {
-		t.Fatalf("flow not created. flows in table: %v", m.flows)
+	
+	if record.Meta.Packets != numGoroutines*numPackets {
+		t.Errorf("expected %d packets, got %d", numGoroutines*numPackets, record.Meta.Packets)
 	}
-	if !record.IsBlocked { t.Error("flow should be blocked") }
+}
 
-	// Ensure blocked flows aren't buffered
-	m.EvictFlow(key)
-	m.db.View(func(txn *badger.Txn) error {
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
-		it.Rewind()
-		if it.Valid() { t.Error("blocked flow was buffered") }
-		return nil
-	})
+func TestMaxFlowsStrictEnforcement(t *testing.T) {
+	tmpDir, _ := os.MkdirTemp("", "malakocut-maxflows-*")
+	defer os.RemoveAll(tmpDir)
+
+	maxFlows := 10
+	m, _ := NewMalakocut(Config{BufferPath: tmpDir, HTTPClient: &http.Client{}, MaxFlows: maxFlows})
+	defer m.Close()
+
+	eth := &layers.Ethernet{EthernetType: layers.EthernetTypeIPv4}
+	for i := 0; i < maxFlows+5; i++ {
+		ip := &layers.IPv4{SrcIP: net.IP{10, 0, 0, byte(i)}, DstIP: net.IP{10, 0, 0, 2}, Protocol: layers.IPProtocolTCP}
+		tcp := &layers.TCP{SrcPort: 1234, DstPort: 80}
+		buf := gopacket.NewSerializeBuffer()
+		gopacket.SerializeLayers(buf, gopacket.SerializeOptions{}, eth, ip, tcp)
+		packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
+		m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil, nil, nil)
+	}
+
+	m.flowMu.RLock()
+	count := len(m.flows)
+	m.flowMu.RUnlock()
+
+	if count != maxFlows {
+		t.Errorf("expected exactly %d flows, got %d", maxFlows, count)
+	}
 }

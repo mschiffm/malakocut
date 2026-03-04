@@ -17,9 +17,7 @@ func (m *Malakocut) RecordActivity(srcIP string, srcPort, dstPort, bytes int) {
 }
 
 func (m *Malakocut) RecordIngestion(count int) {
-	m.statsMu.Lock()
-	defer m.statsMu.Unlock()
-	m.totalEvents += int64(count)
+	m.totalEvents.Add(int64(count))
 }
 
 func (m *Malakocut) GenerateDailySummary() string {
@@ -35,9 +33,9 @@ func (m *Malakocut) GenerateDailySummary() string {
 	sb.WriteString("Malakocut Daily NDR Summary\n")
 	sb.WriteString("===========================\n")
 	sb.WriteString("Report Period:  " + m.startTime.Format(time.RFC822) + " to " + time.Now().Format(time.RFC822) + "\n")
-	sb.WriteString(fmt.Sprintf("Total Flows:    %d\n", m.totalFlows))
+	sb.WriteString(fmt.Sprintf("Total Flows:    %d\n", m.totalFlows.Load()))
 	sb.WriteString(fmt.Sprintf("Total Bytes:    %.2f GB\n", float64(totalBytes)/(1024*1024*1024)))
-	sb.WriteString(fmt.Sprintf("SecOps Events:  %d\n\n", m.totalEvents))
+	sb.WriteString(fmt.Sprintf("SecOps Events:  %d\n\n", m.totalEvents.Load()))
 
 	// Helper for Top N sorting
 	type kv struct {
@@ -83,8 +81,8 @@ func (m *Malakocut) GenerateDailySummary() string {
 	m.bytesPerSrcPort = make(map[int]int64)
 	m.bytesPerDstPort = make(map[int]int64)
 	m.dnsCounts = make(map[string]int64)
-	m.totalEvents = 0
-	m.totalFlows = 0
+	m.totalEvents.Store(0)
+	m.totalFlows.Store(0)
 	m.startTime = time.Now()
 
 	return sb.String()

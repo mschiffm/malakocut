@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/dgraph-io/badger/v4"
@@ -77,8 +78,8 @@ type Malakocut struct {
 	bytesPerSrcPort map[int]int64
 	bytesPerDstPort map[int]int64
 	dnsCounts       map[string]int64
-	totalEvents     int64
-	totalFlows      int64
+	totalEvents     atomic.Int64
+	totalFlows      atomic.Int64
 	startTime       time.Time
 
 	// Configuration

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -37,39 +38,26 @@ var (
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	flag.BoolVar(&resolveDNS, "resolve", false, "Enable reverse DNS resolution for IP addresses")
+	flag.BoolVar(&prettyPrint, "pretty", false, "Enable human-readable number scaling (K, M, G, etc.)")
+	flag.Parse()
+
+	args := flag.Args()
+	if len(args) < 1 {
 		usage()
 		return
 	}
 
-	// Simple flag parsing
-	args := os.Args[1:]
-	command := ""
-	for _, arg := range args {
-		if arg == "-resolve" {
-			resolveDNS = true
-			continue
-		}
-		if arg == "-pretty" {
-			prettyPrint = true
-			continue
-		}
-		if command == "" && !strings.HasPrefix(arg, "-") {
-			command = arg
-		}
-	}
-
-	if command == "-h" || command == "--help" || command == "-help" || command == "help" || command == "" {
-		usage()
-		return
-	}
-
+	command := args[0]
 	switch command {
 	case "status":
 		showStatus()
 	case "top":
 		showTop()
+	case "help":
+		usage()
 	default:
+		fmt.Printf("Unknown command: %s\n", command)
 		usage()
 	}
 }

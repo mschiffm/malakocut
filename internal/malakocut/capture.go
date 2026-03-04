@@ -134,42 +134,40 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 	m.flowMu.RUnlock()
 
 	if !exists {
-		// Enforcement: Do not allow map to exceed MaxFlows (DoS Protection)
-		m.flowMu.RLock()
-		count := len(m.flows)
-		m.flowMu.RUnlock()
-
-		if count >= m.Config.MaxFlows {
-			return
-		}
-
-		hash := sha256.Sum256([]byte(flowKey))
-		flowID := fmt.Sprintf("%x", hash)[:16]
-
-		record = &FlowRecord{
-			FirstSeen: packet.Metadata().Timestamp,
-			LastSeen:  packet.Metadata().Timestamp,
-			Meta: FlowMetadata{
-				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
-				FlowID:    flowID,
-				SrcIP:     srcIP,
-				DstIP:     dstIP,
-				SrcPort:   srcPort,
-				DstPort:   dstPort,
-				Protocol:  protocol,
-			},
-		}
-		if isICMP {
-			record.Meta.ICMPType = icmpType
-			record.Meta.ICMPCode = icmpCode
-		}
 		m.flowMu.Lock()
-		m.flows[flowKey] = record
-		m.flowMu.Unlock()
+		// Double-check existence after acquiring write lock
+		record, exists = m.flows[flowKey]
+		if !exists {
+			// Strict Enforcement: Do not allow map to exceed MaxFlows
+			if len(m.flows) >= m.Config.MaxFlows {
+				m.flowMu.Unlock()
+				return
+			}
 
-		m.statsMu.Lock()
-		m.totalFlows++
-		m.statsMu.Unlock()
+			hash := sha256.Sum256([]byte(flowKey))
+			flowID := fmt.Sprintf("%x", hash)[:16]
+
+			record = &FlowRecord{
+				FirstSeen: packet.Metadata().Timestamp,
+				LastSeen:  packet.Metadata().Timestamp,
+				Meta: FlowMetadata{
+					Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+					FlowID:    flowID,
+					SrcIP:     srcIP,
+					DstIP:     dstIP,
+					SrcPort:   srcPort,
+					DstPort:   dstPort,
+					Protocol:  protocol,
+				},
+			}
+			if isICMP {
+				record.Meta.ICMPType = icmpType
+				record.Meta.ICMPCode = icmpCode
+			}
+			m.flows[flowKey] = record
+			m.totalFlows.Add(1)
+		}
+		m.flowMu.Unlock()
 	}
 
 	record.mu.Lock()
