@@ -57,6 +57,8 @@ func TestResolveMAC(t *testing.T) {
 	}{
 		{"00:0c:29:01:02:03", "00:0c:29:01:02:03 (VMware)"},
 		{"00:05:cd:aa:bb:cc", "00:05:cd:aa:bb:cc (Apple)"},
+		{"00:03:47:11:22:33", "00:03:47:11:22:33 (Intel)"},
+		{"00:04:1f:aa:bb:cc", "00:04:1f:aa:bb:cc (Sony)"},
 		{"ff:ff:ff:ff:ff:ff", "ff:ff:ff:ff:ff:ff"},
 	}
 
