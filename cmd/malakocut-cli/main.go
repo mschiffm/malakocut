@@ -433,9 +433,13 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 						info = vendorName
 					}
 				}
-			} else if info == "" && f.SrcMAC != "" {
-				// No flags, no vendor, show raw MAC
-				info = f.SrcMAC
+			} else if f.SrcMAC != "" {
+				// No vendor, show raw MAC
+				if info != "" {
+					info = fmt.Sprintf("%s %s", info, f.SrcMAC)
+				} else {
+					info = f.SrcMAC
+				}
 			}
 		}
 		if len(info) > 14 { info = info[:14] }
