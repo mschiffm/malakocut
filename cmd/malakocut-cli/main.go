@@ -240,7 +240,7 @@ func showTop() {
 	client := getClient()
 	sortBy := "bytes"
 	showHelp := false
-	hideNoise := false
+	hideNoise := true
 	
 	cmdChan := make(chan rune)
 	go func() {
@@ -310,6 +310,7 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 
 	var flows []malakocut.FlowMetadata
 	json.NewDecoder(resp.Body).Decode(&flows)
+	totalFetched := len(flows)
 
 	// Filter noise if enabled
 	if hideNoise {
@@ -335,15 +336,16 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 		}
 	})
 
-	termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
+	termWidth, termHeight, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil || termWidth < 80 {
 		termWidth = 100
+		termHeight = 24
 	}
 
 	// Columns: ID:8, SRC:var, DST:var, PROTO:8, INFO:14, BYTES:10, PKTS:8, DUR:10, IDLE:10
 	fixedPart := 8 + 8 + 14 + 10 + 8 + 10 + 10 + 14 // headers + gaps
 	rem := termWidth - fixedPart
-	if rem < 20 { rem = 20 }
+	if rem < 40 { rem = 40 } // Give more space for hosts
 	colWidth := rem / 2
 
 	fmt.Print("\033[H\033[2J")
@@ -353,10 +355,10 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 	noiseStr := "visible"
 	if hideNoise { noiseStr = "hidden" }
 
-	fmt.Printf("%sMalakocut Top%s - %s | Active Flows: %s%d%s | Sort: %s%s (%s)%s | Noise: %s | DNS: %v\r\n",
+	fmt.Printf("%sMalakocut Top%s - %s | Flows: %s%d/%d%s | Sort: %s%s (%s)%s | Noise: %s | DNS: %v\r\n",
 		COLOR_BOLD+COLOR_CYAN, COLOR_RESET,
 		time.Now().Format(time.Kitchen),
-		COLOR_GREEN, len(flows), COLOR_RESET,
+		COLOR_GREEN, len(flows), totalFetched, COLOR_RESET,
 		COLOR_YEL, sortBy, prettyStr, COLOR_RESET, noiseStr, resolveDNS)
 	
 	fmt.Printf("Shortcuts: %s?%selp, %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve, %sh%suman, %sm%snoise\r\n\r\n",
@@ -364,11 +366,17 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 
 	fmt.Print(COLOR_REV)
 	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %10s %10s",
-		"FLOW ID", colWidth, "SRC (HOST/IP)", colWidth, "DST (HOST/IP)", "PROTO", "INFO/FLAGS", "BYTES", "PKTS", "DUR", "IDLE")
+		"FLOW ID", colWidth, "SRC (HOST/IP)", colWidth, "DST (HOST/IP)", "PROTO", "INFO/FLAGS/MAC", "BYTES", "PKTS", "DUR", "IDLE")
 	fmt.Printf("%s\r\n", COLOR_RESET)
 
+	// Available rows for flows
+	// Total - (Header:1, Shortcuts:1, Gap:1, Headers:1, Footer:1) = 5 lines overhead
+	maxVisible := termHeight - 6
+	if maxVisible < 1 { maxVisible = 1 }
+
 	for i, f := range flows {
-		if i >= 20 {
+		if i >= maxVisible {
+			fmt.Printf("\r\n%s... and %d more flows (sort by [b/p/d/i] to see more) ...%s", COLOR_YEL, len(flows)-i, COLOR_RESET)
 			break
 		}
 		
@@ -408,6 +416,7 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 			protoColor = COLOR_GREEN
 		}
 
+		// Info Column: Flags + MAC/Vendor
 		info := f.TCPFlags
 		if strings.HasPrefix(f.Protocol, "ICMP") {
 			info = malakocut.ResolveICMP(f.Protocol, f.ICMPType, f.ICMPCode, resolveDNS)
