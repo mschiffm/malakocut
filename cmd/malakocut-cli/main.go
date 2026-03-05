@@ -401,10 +401,20 @@ func renderTop(client *http.Client, sortBy string) {
 		info := f.TCPFlags
 		if strings.HasPrefix(f.Protocol, "ICMP") {
 			info = malakocut.ResolveICMP(f.Protocol, f.ICMPType, f.ICMPCode, resolveDNS)
-		}
-		if info == "" && resolveDNS {
-			// If no flags, show MAC vendor if available
-			info = malakocut.ResolveMAC(f.SrcMAC, resolveDNS)
+		} else if resolveDNS {
+			vendor := malakocut.ResolveMAC(f.SrcMAC, resolveDNS)
+			if vendor != f.SrcMAC {
+				// Extract just the vendor name from "mac (Vendor)"
+				parts := strings.Split(vendor, "(")
+				if len(parts) > 1 {
+					vendorName := strings.TrimSuffix(parts[1], ")")
+					if info != "" {
+						info = fmt.Sprintf("%s [%s]", info, vendorName)
+					} else {
+						info = vendorName
+					}
+				}
+			}
 		}
 		if len(info) > 14 { info = info[:14] }
 
@@ -425,11 +435,11 @@ func renderHelp() {
 	fmt.Printf("%sMalakocut Top - Help & Legend%s\r\n\r\n", COLOR_BOLD+COLOR_CYAN, COLOR_RESET)
 	
 	fmt.Printf("%sShortcuts:%s\r\n", COLOR_BOLD, COLOR_RESET)
-	fmt.Println("  ?         Toggle this help screen")
-	fmt.Println("  q         Quit to shell")
-	fmt.Println("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness")
-	fmt.Println("  r         Toggle DNS & ICMP Name Resolution")
-	fmt.Println("  h         Toggle Human-readable Scaling (K, M, G, etc.)")
+	fmt.Print("  ?         Toggle this help screen\r\n")
+	fmt.Print("  q         Quit to shell\r\n")
+	fmt.Print("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness\r\n")
+	fmt.Print("  r         Toggle DNS & ICMP Name Resolution\r\n")
+	fmt.Print("  h         Toggle Human-readable Scaling (K, M, G, etc.)\r\n")
 	
 	fmt.Printf("\r\n%sFlow Legend (SRC Column Icons):%s\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Printf("  %s %-10s Traffic entering from a Public/External IP\r\n", ICON_IN, "Inbound")
