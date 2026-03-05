@@ -28,6 +28,9 @@ const (
 	COLOR_YEL   = "\033[33m"
 	COLOR_RED   = "\033[31m"
 	COLOR_REV   = "\033[7m"
+	ICON_IN     = "📥"
+	ICON_OUT    = "📤"
+	ICON_LOCAL  = "🏠"
 )
 
 var (
@@ -283,38 +286,7 @@ func showTop() {
 }
 
 func resolveICMP(proto string, t, c int) string {
-	if !resolveDNS {
-		return fmt.Sprintf("T:%d C:%d", t, c)
-	}
-
-	if proto == "ICMP" {
-		switch t {
-		case 0: return "Echo Reply"
-		case 3:
-			switch c {
-			case 0: return "Net Unreach"
-			case 1: return "Host Unreach"
-			case 3: return "Port Unreach"
-			default: return "Dest Unreach"
-			}
-		case 5: return "Redirect"
-		case 8: return "Echo Req"
-		case 11: return "TTL Exceeded"
-		}
-	} else if proto == "ICMPv6" {
-		switch t {
-		case 1: return "Unreach (v6)"
-		case 2: return "Packet Too Big"
-		case 3: return "Time Exceeded"
-		case 128: return "Echo Req (v6)"
-		case 129: return "Echo Reply (v6)"
-		case 133: return "Router Solicit"
-		case 134: return "Router Advert"
-		case 135: return "Neighbor Solicit"
-		case 136: return "Neighbor Advert"
-		}
-	}
-	return fmt.Sprintf("T:%d C:%d", t, c)
+	return malakocut.ResolveICMP(proto, t, c, resolveDNS)
 }
 
 func renderTop(client *http.Client, sortBy string) {
@@ -379,11 +351,31 @@ func renderTop(client *http.Client, sortBy string) {
 		srcHost := getHostname(f.SrcIP)
 		dstHost := getHostname(f.DstIP)
 
-		src := fmt.Sprintf("%s:%d", srcHost, f.SrcPort)
+		srcLabel := malakocut.GetNetworkLabel(f.SrcIP, resolveDNS)
+		dstLabel := malakocut.GetNetworkLabel(f.DstIP, resolveDNS)
+
+		if srcLabel != "" {
+			srcHost = fmt.Sprintf("[%s] %s", srcLabel, srcHost)
+		}
+		if dstLabel != "" {
+			dstHost = fmt.Sprintf("[%s] %s", dstLabel, dstHost)
+		}
+
+		src := fmt.Sprintf("%s:%s", srcHost, malakocut.ResolveService(f.SrcPort, resolveDNS))
 		if len(src) > colWidth { src = src[:colWidth-3] + "..." }
 		
-		dst := fmt.Sprintf("%s:%d", dstHost, f.DstPort)
+		dst := fmt.Sprintf("%s:%s", dstHost, malakocut.ResolveService(f.DstPort, resolveDNS))
 		if len(dst) > colWidth { dst = dst[:colWidth-3] + "..." }
+
+		// Directionality
+		dirIcon := ICON_LOCAL
+		srcInt := malakocut.IsInternal(f.SrcIP)
+		dstInt := malakocut.IsInternal(f.DstIP)
+		if srcInt && !dstInt {
+			dirIcon = ICON_OUT
+		} else if !srcInt && dstInt {
+			dirIcon = ICON_IN
+		}
 
 		protoColor := COLOR_RESET
 		if f.Protocol == "TCP" {
@@ -394,12 +386,16 @@ func renderTop(client *http.Client, sortBy string) {
 
 		info := f.TCPFlags
 		if strings.HasPrefix(f.Protocol, "ICMP") {
-			info = resolveICMP(f.Protocol, f.ICMPType, f.ICMPCode)
+			info = malakocut.ResolveICMP(f.Protocol, f.ICMPType, f.ICMPCode, resolveDNS)
+		}
+		if info == "" && resolveDNS {
+			// If no flags, show MAC vendor if available
+			info = malakocut.ResolveMAC(f.SrcMAC, resolveDNS)
 		}
 		if len(info) > 14 { info = info[:14] }
 
 		fmt.Printf("%-8s ", f.FlowID[:8])
-		fmt.Printf("%-*s ", colWidth, src)
+		fmt.Printf("%s %-*s ", dirIcon, colWidth-2, src)
 		fmt.Printf("%-*s ", colWidth, dst)
 		fmt.Printf("%s%-8s%s ", protoColor, f.Protocol, COLOR_RESET)
 		fmt.Printf("%s%-14s%s ", COLOR_YEL, info, COLOR_RESET)

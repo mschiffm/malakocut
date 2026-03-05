@@ -80,7 +80,7 @@ func (m *Malakocut) StartListener(iface string) error {
 }
 
 func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopacket.LayerType, ip4 *layers.IPv4, ip6 *layers.IPv6, tcp *layers.TCP, udp *layers.UDP, icmp4 *layers.ICMPv4, icmp6 *layers.ICMPv6) {
-	var srcIP, dstIP, protocol string
+	var srcIP, dstIP, protocol, srcMAC, dstMAC string
 	var srcPort, dstPort int
 	var l3Found bool
 	var isTCP bool
@@ -88,8 +88,12 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 	var isICMP bool
 	var icmpType, icmpCode int
 
-	for _, lt := range decoded {
+	for i, lt := range decoded {
 		switch lt {
+		case layers.LayerTypeEthernet:
+			eth := packet.LinkLayer().(*layers.Ethernet)
+			srcMAC = eth.SrcMAC.String()
+			dstMAC = eth.DstMAC.String()
 		case layers.LayerTypeIPv4:
 			srcIP = ip4.SrcIP.String()
 			dstIP = ip4.DstIP.String()
@@ -121,6 +125,7 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 			icmpType = int(icmp6.TypeCode.Type())
 			icmpCode = int(icmp6.TypeCode.Code())
 		}
+		_ = i
 	}
 
 	if !l3Found {
@@ -154,7 +159,9 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 					Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 					FlowID:    flowID,
 					SrcIP:     srcIP,
+					SrcMAC:    srcMAC,
 					DstIP:     dstIP,
+					DstMAC:    dstMAC,
 					SrcPort:   srcPort,
 					DstPort:   dstPort,
 					Protocol:  protocol,

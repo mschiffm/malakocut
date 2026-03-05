@@ -1,0 +1,34 @@
+rule malakocut_potential_exfiltration {
+  meta:
+    author = "Malakocut NDR"
+    description = "Detects high volume outbound data transfer from internal hosts to public IPs"
+    severity = "High"
+
+  events:
+    $e.metadata.log_type = "MALAKOCUT_NETWORK_CUSTOM"
+    
+    // Assign fields to variables
+    $e.principal.ip = $src_ip
+    $e.target.ip = $dst_ip
+    $e.network.sent_bytes = $sent_bytes
+    
+    // Internal Source Check
+    (
+      net.ip_in_range_cidr($src_ip, "192.168.0.0/16") or 
+      net.ip_in_range_cidr($src_ip, "10.0.0.0/8") or 
+      net.ip_in_range_cidr($src_ip, "172.16.0.0/12")
+    )
+
+    // External Destination Check
+    not (
+      net.ip_in_range_cidr($dst_ip, "192.168.0.0/16") or 
+      net.ip_in_range_cidr($dst_ip, "10.0.0.0/8") or 
+      net.ip_in_range_cidr($dst_ip, "172.16.0.0/12")
+    )
+
+  match:
+    $src_ip, $dst_ip over 1h
+
+  condition:
+    sum($sent_bytes) > 524288000
+}

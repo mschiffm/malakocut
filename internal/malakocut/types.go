@@ -19,8 +19,10 @@ type FlowMetadata struct {
 	FlowID      string  `json:"flow_id"`
 	ShredIndex  int     `json:"shred_index"` // Sequence number for long-running sessions
 	SrcIP       string  `json:"src_ip"`
+	SrcMAC      string  `json:"src_mac,omitempty"`
 	SrcPort     int     `json:"src_port,omitempty"`
 	DstIP       string  `json:"dst_ip"`
+	DstMAC      string  `json:"dst_mac,omitempty"`
 	DstPort     int     `json:"dst_port,omitempty"`
 	Protocol    string  `json:"protocol"`
 	TCPFlags    string  `json:"tcp_flags,omitempty"`
@@ -106,6 +108,9 @@ type Config struct {
 	ActiveTimeout  time.Duration // Now acts as the Checkpoint Interval
 	MaxFlows       int
 	AuthScope      string
+
+	// Network Labels (CIDR -> Label)
+	NetworkLabels  map[string]string
 
 	// Mail Configuration (SendGrid)
 	SendGridKey    string
