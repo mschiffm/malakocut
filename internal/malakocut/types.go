@@ -82,6 +82,7 @@ type Malakocut struct {
 	dnsCounts       map[string]int64
 	totalEvents     atomic.Int64
 	totalFlows      atomic.Int64
+	droppedEvents   atomic.Int64
 	startTime       time.Time
 
 	// Configuration

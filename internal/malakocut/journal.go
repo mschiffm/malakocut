@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	ALERT_EMAIL  = "themikeschiffman@gmail.com"
 	MIN_FREE_PCT = 10.0
 )
 

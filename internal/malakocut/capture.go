@@ -69,6 +69,7 @@ func (m *Malakocut) StartListener(iface string) error {
 			case m.pcapChan <- packet:
 			default:
 				// If journaler is backed up, we skip to prioritize telemetry
+				m.droppedEvents.Add(1)
 			}
 
 			// 3. Telemetry Processing (Synchronous to avoid AF_PACKET buffer races)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -37,11 +38,8 @@ func main() {
 	mailFrom := os.Getenv("MAIL_FROM")
 	mailTo := os.Getenv("MAIL_TO")
 
-	if mailFrom == "" {
-		mailFrom = "themikeschiffman@gmail.com"
-	}
-	if mailTo == "" {
-		mailTo = "themikeschiffman@gmail.com"
+	if sendgridKey == "your-sendgrid-key-here" {
+		log.Fatalf("[!] Error: Default SendGrid key detected. Please set a valid SENDGRID_API_KEY environment variable.")
 	}
 
 	debugFlag := flag.Bool("debug", false, "Enable debug logging")
@@ -54,6 +52,10 @@ func main() {
 
 	if *exporterFlag == "secops" && (customerID == "" || ingestionURL == "") {
 		log.Fatalf("[!] Error: CHRONICLE_CUSTOMER_ID and CHRONICLE_INGESTION_URL must be set for SecOps exporter")
+	}
+
+	if *exporterFlag == "secops" && !strings.HasPrefix(ingestionURL, "https://") {
+		log.Printf("[!] WARNING: Ingestion URL is insecure (HTTP). It is strongly recommended to use HTTPS for telemetry delivery.")
 	}
 
 	// Refined noise filter: Exclude Broadcast, Multicast, ARP, DHCP, mDNS, SSDP, NetBIOS, LLMNR

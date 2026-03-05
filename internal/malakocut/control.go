@@ -18,6 +18,7 @@ type SystemStatus struct {
 	PcapFiles    int           `json:"pcap_files"`
 	TotalEvents  int64         `json:"total_events"`
 	ActiveFlows  int           `json:"active_flows"`
+	DroppedEvents int64        `json:"dropped_events"`
 	IngestionURL string        `json:"ingestion_url"`
 	TopSrcPorts  map[int]int64 `json:"top_src_ports"`
 	TopDstPorts  map[int]int64 `json:"top_dst_ports"`
@@ -53,14 +54,15 @@ func (m *Malakocut) StartControlSocket() {
 		files, _ := os.ReadDir(m.Config.PcapDir)
 
 		status := SystemStatus{
-			Uptime:       time.Since(m.startTime).String(),
-			DiskFreePct:  freePct,
-			PcapFiles:    len(files),
-			TotalEvents:  events,
-			ActiveFlows:  len(m.flows),
-			IngestionURL: m.Config.IngestionURL,
-			TopSrcPorts:  srcPorts,
-			TopDstPorts:  dstPorts,
+			Uptime:        time.Since(m.startTime).String(),
+			DiskFreePct:   freePct,
+			PcapFiles:     len(files),
+			TotalEvents:   events,
+			ActiveFlows:   len(m.flows),
+			DroppedEvents: m.droppedEvents.Load(),
+			IngestionURL:  m.Config.IngestionURL,
+			TopSrcPorts:   srcPorts,
+			TopDstPorts:   dstPorts,
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(status)

@@ -1,34 +1,7 @@
-# Binaries
 /malakocut
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Secrets and Keys
-auth.json
-secops_key.json
-malakocut.env
-*.pem
-*.key
-*.pub
-*.token
+/malakocut-cli
+*.log
 .env
-
-# Local Databases and Buffers
+secops_key.json
 buffer/
 pcap/
-/var/lib/malakocut/
-
-# Logs
-*.log
-malakocut_debug.log
-
-# Testing
-*.test
-/tmp/malakocut-test-*
-
-# OS specific
-.DS_Store
-Thumbs.db
