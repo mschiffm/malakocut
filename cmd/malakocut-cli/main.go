@@ -75,14 +75,12 @@ func usage() {
 	fmt.Printf("  %sstatus%s    Show daemon uptime, disk health, and ingestion metrics.\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Printf("  %stop%s       Interactive live-updating flow visualizer.\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Println("\r\nInteractive shortcuts (top mode):")
-	fmt.Println("  ?         Show this help and legend")
+	fmt.Println("  ?         Show help and legend")
 	fmt.Println("  q         Quit to shell")
-	fmt.Println("  b         Sort by Bytes")
-	fmt.Println("  p         Sort by Packets")
-	fmt.Println("  d         Sort by Duration")
-	fmt.Println("  i         Sort by Idleness")
+	fmt.Println("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness")
 	fmt.Println("  r         Toggle DNS & ICMP resolution")
 	fmt.Println("  h         Toggle Human-readable scaling")
+	fmt.Println("  m         Toggle Noise (Broadcast/Multicast) visibility")
 }
 
 func prettyBytes(b int) string {
@@ -242,6 +240,7 @@ func showTop() {
 	client := getClient()
 	sortBy := "bytes"
 	showHelp := false
+	hideNoise := false
 	
 	cmdChan := make(chan rune)
 	go func() {
@@ -258,7 +257,7 @@ func showTop() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	renderTop(client, sortBy)
+	renderTop(client, sortBy, hideNoise)
 
 	for {
 		select {
@@ -269,6 +268,8 @@ func showTop() {
 				return
 			case '?':
 				showHelp = !showHelp
+			case 'm':
+				hideNoise = !hideNoise
 			case 'b':
 				sortBy = "bytes"
 				showHelp = false
@@ -289,21 +290,17 @@ func showTop() {
 			if showHelp {
 				renderHelp()
 			} else {
-				renderTop(client, sortBy)
+				renderTop(client, sortBy, hideNoise)
 			}
 		case <-ticker.C:
 			if !showHelp {
-				renderTop(client, sortBy)
+				renderTop(client, sortBy, hideNoise)
 			}
 		}
 	}
 }
 
-func resolveICMP(proto string, t, c int) string {
-	return malakocut.ResolveICMP(proto, t, c, resolveDNS)
-}
-
-func renderTop(client *http.Client, sortBy string) {
+func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 	resp, err := client.Get("http://localhost/flows")
 	if err != nil {
 		fmt.Printf("\r\nError: %v\r\n", err)
@@ -313,6 +310,17 @@ func renderTop(client *http.Client, sortBy string) {
 
 	var flows []malakocut.FlowMetadata
 	json.NewDecoder(resp.Body).Decode(&flows)
+
+	// Filter noise if enabled
+	if hideNoise {
+		filtered := make([]malakocut.FlowMetadata, 0, len(flows))
+		for _, f := range flows {
+			if !malakocut.IsMulticastOrBroadcast(f.DstIP) {
+				filtered = append(filtered, f)
+			}
+		}
+		flows = filtered
+	}
 
 	sort.Slice(flows, func(i, j int) bool {
 		switch sortBy {
@@ -342,15 +350,17 @@ func renderTop(client *http.Client, sortBy string) {
 
 	prettyStr := "raw"
 	if prettyPrint { prettyStr = "human" }
+	noiseStr := "visible"
+	if hideNoise { noiseStr = "hidden" }
 
-	fmt.Printf("%sMalakocut Top%s - %s | Active Flows: %s%d%s | Sort: %s%s (%s)%s | DNS: %v\r\n",
+	fmt.Printf("%sMalakocut Top%s - %s | Active Flows: %s%d%s | Sort: %s%s (%s)%s | Noise: %s | DNS: %v\r\n",
 		COLOR_BOLD+COLOR_CYAN, COLOR_RESET,
 		time.Now().Format(time.Kitchen),
 		COLOR_GREEN, len(flows), COLOR_RESET,
-		COLOR_YEL, sortBy, prettyStr, COLOR_RESET, resolveDNS)
+		COLOR_YEL, sortBy, prettyStr, COLOR_RESET, noiseStr, resolveDNS)
 	
-	fmt.Printf("Shortcuts: %s?%selp, %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve, %sh%suman\r\n\r\n",
-		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("Shortcuts: %s?%selp, %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve, %sh%suman, %sm%snoise\r\n\r\n",
+		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	fmt.Print(COLOR_REV)
 	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %10s %10s",
@@ -402,18 +412,21 @@ func renderTop(client *http.Client, sortBy string) {
 		if strings.HasPrefix(f.Protocol, "ICMP") {
 			info = malakocut.ResolveICMP(f.Protocol, f.ICMPType, f.ICMPCode, resolveDNS)
 		} else if resolveDNS {
-			vendor := malakocut.ResolveMAC(f.SrcMAC, resolveDNS)
-			if vendor != f.SrcMAC {
-				// Extract just the vendor name from "mac (Vendor)"
-				parts := strings.Split(vendor, "(")
+			resolved := malakocut.ResolveMAC(f.SrcMAC, resolveDNS)
+			if resolved != f.SrcMAC {
+				// We have a vendor
+				parts := strings.Split(resolved, "(")
 				if len(parts) > 1 {
-					vendorName := strings.TrimSuffix(parts[1], ")")
+					vendorName := strings.TrimSpace(strings.TrimSuffix(parts[1], ")"))
 					if info != "" {
 						info = fmt.Sprintf("%s [%s]", info, vendorName)
 					} else {
 						info = vendorName
 					}
 				}
+			} else if info == "" && f.SrcMAC != "" {
+				// No flags, no vendor, show raw MAC
+				info = f.SrcMAC
 			}
 		}
 		if len(info) > 14 { info = info[:14] }
@@ -440,6 +453,7 @@ func renderHelp() {
 	fmt.Print("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness\r\n")
 	fmt.Print("  r         Toggle DNS & ICMP Name Resolution\r\n")
 	fmt.Print("  h         Toggle Human-readable Scaling (K, M, G, etc.)\r\n")
+	fmt.Print("  m         Toggle Noise (Multicast/Broadcast) visibility\r\n")
 	
 	fmt.Printf("\r\n%sFlow Legend (SRC Column Icons):%s\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Printf("  %s %-10s Traffic entering from a Public/External IP\r\n", ICON_IN, "Inbound")

@@ -224,6 +224,21 @@ func IsInternal(ip string) bool {
 	return false
 }
 
+func IsMulticastOrBroadcast(ip string) bool {
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return false
+	}
+	if parsedIP.IsMulticast() {
+		return true
+	}
+	// Check for 255.255.255.255
+	if ip == "255.255.255.255" {
+		return true
+	}
+	return false
+}
+
 func ResolveICMP(proto string, t, c int, enabled bool) string {
 	if !enabled {
 		return fmt.Sprintf("T:%d C:%d", t, c)

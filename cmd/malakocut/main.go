@@ -48,7 +48,7 @@ func main() {
 	blocklistFlag := flag.String("blocklist", "configs/blocklist.conf", "Path to streaming domain blocklist file")
 	maxFlows := flag.Int("max-flows", 100000, "Maximum number of concurrent flows in memory")
 	exporterFlag := flag.String("exporter", "none", "Telemetry exporter: 'secops' or 'none'")
-	filterFlag := flag.String("filter", "tcp or udp or icmp or icmp6", "Global BPF filter")
+	filterFlag := flag.String("filter", "(tcp or udp or icmp or icmp6) and not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)", "Global BPF filter")
 	flag.Parse()
 
 	if *exporterFlag == "secops" && (customerID == "" || ingestionURL == "") {
