@@ -176,6 +176,7 @@ func getClient() *http.Client {
 }
 
 func showStatus() {
+	malakocut.InitResolution()
 	client := getClient()
 	resp, err := client.Get("http://localhost/status")
 	if err != nil {
@@ -231,6 +232,7 @@ func printTopPorts(ports map[int]int64) {
 }
 
 func showTop() {
+	malakocut.InitResolution()
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		log.Fatal(err)
@@ -342,8 +344,8 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 		termHeight = 24
 	}
 
-	// Columns: ID:8, SRC:var, DST:var, PROTO:8, INFO:14, BYTES:10, PKTS:8, DUR:10, IDLE:10
-	fixedPart := 8 + 8 + 14 + 10 + 8 + 10 + 10 + 14 // headers + gaps
+	// Columns: ID:8, SRC:var, DST:var, PROTO:8, INFO:20, BYTES:10, PKTS:8, DUR:10, IDLE:10
+	fixedPart := 8 + 8 + 20 + 10 + 8 + 10 + 10 + 14 // headers + gaps
 	rem := termWidth - fixedPart
 	if rem < 40 { rem = 40 } // Give more space for hosts
 	colWidth := rem / 2
@@ -365,7 +367,7 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	fmt.Print(COLOR_REV)
-	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %10s %10s",
+	fmt.Printf("%-8s %-*s %-*s %-8s %-20s %10s %8s %10s %10s",
 		"FLOW ID", colWidth, "SRC (HOST/IP)", colWidth, "DST (HOST/IP)", "PROTO", "INFO/FLAGS/MAC", "BYTES", "PKTS", "DUR", "IDLE")
 	fmt.Printf("%s\r\n", COLOR_RESET)
 
@@ -442,13 +444,13 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 				}
 			}
 		}
-		if len(info) > 14 { info = info[:14] }
+		if len(info) > 20 { info = info[:20] }
 
 		fmt.Printf("%-8s ", f.FlowID[:8])
 		fmt.Printf("%s %-*s ", dirIcon, colWidth-2, src)
 		fmt.Printf("%-*s ", colWidth, dst)
 		fmt.Printf("%s%-8s%s ", protoColor, f.Protocol, COLOR_RESET)
-		fmt.Printf("%s%-14s%s ", COLOR_YEL, info, COLOR_RESET)
+		fmt.Printf("%s%-20s%s ", COLOR_YEL, info, COLOR_RESET)
 		fmt.Printf("%10s ", prettyBytes(f.Bytes))
 		fmt.Printf("%8s ", prettyPackets(f.Packets))
 		fmt.Printf("%10s ", prettyTime(f.DurationS))

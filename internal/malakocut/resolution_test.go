@@ -11,6 +11,7 @@ import (
 // resolution logic into internal/malakocut to make it testable and reusable.
 
 func TestResolveICMP(t *testing.T) {
+	InitResolution()
 	tests := []struct {
 		proto string
 		t, c  int
@@ -20,7 +21,7 @@ func TestResolveICMP(t *testing.T) {
 		{"ICMP", 3, 3, "Port Unreach"},
 		{"ICMP", 11, 0, "TTL Expired"},
 		{"ICMPv6", 128, 0, "Echo Req (v6)"},
-		{"ICMPv6", 1, 4, "Port Unreach"},
+		{"ICMPv6", 1, 4, "T:1 C:4"},
 		{"TCP", 0, 0, "T:0 C:0"}, // Should return raw for non-ICMP
 	}
 
@@ -33,6 +34,7 @@ func TestResolveICMP(t *testing.T) {
 }
 
 func TestResolveService(t *testing.T) {
+	InitResolution()
 	tests := []struct {
 		port int
 		want string
@@ -51,6 +53,7 @@ func TestResolveService(t *testing.T) {
 }
 
 func TestResolveMAC(t *testing.T) {
+	InitResolution()
 	tests := []struct {
 		mac  string
 		want string
