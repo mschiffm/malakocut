@@ -1,54 +1,585 @@
-00:0c:29:VMware
-00:50:56:VMware
-08:00:27:VirtualBox
-b8:27:eb:RaspberryPi
-dc:a6:32:RaspberryPi
-e4:5f:01:RaspberryPi
-00:05:cd:Apple
-00:1c:b3:Apple
-00:25:00:Apple
-d8:00:4d:Apple
-f0:18:98:Apple
-64:16:66:Apple
-c4:ad:34:Apple
-48:d7:05:Apple
-00:1d:aa:Ubiquiti
-08:c2:24:Ubiquiti
-74:83:c2:Ubiquiti
-fc:ec:da:Ubiquiti
-44:d9:e7:Ubiquiti
-18:e8:29:Ubiquiti
-24:5a:4c:Ubiquiti
-00:11:32:Synology
-00:03:47:Intel
-cc:af:78:Intel
-00:24:d7:Intel
-00:15:5d:Microsoft
-70:ee:50:Espressif
-ac:67:b2:Espressif
-2c:3a:e8:Espressif
-60:01:94:Espressif
-00:11:24:Sony
-00:04:1f:Sony
-00:1a:11:Google
-20:df:b9:Google
-54:60:09:Google
-a4:77:33:Google
-10:ae:60:Amazon
-3c:37:86:Amazon
-40:b4:cd:Amazon
-68:37:e9:Amazon
-e0:b9:4d:Amazon
-00:00:0c:Cisco
-00:01:c9:Dell
-00:14:22:Dell
-00:16:35:HP
-00:17:a4:HP
-00:1f:33:Netgear
-00:1e:8c:ASUS
-00:50:ba:D-Link
-50:c7:bf:TP-Link
-84:16:f9:TP-Link
-b4:75:0e:TP-Link
-ac:cf:23:Hi-Link
-00:10:75:Seagate
+28:6F:B9:Nokia Shanghai Bell Co., Ltd.
+08:EA:44:Extreme Networks Headquarters
+F4:EA:B5:Extreme Networks Headquarters
+B8:7C:F2:Extreme Networks Headquarters
+E0:A1:29:Extreme Networks Headquarters
+A8:C6:47:Extreme Networks Headquarters
+A4:73:AB:Extreme Networks Headquarters
+0C:9B:78:Extreme Networks Headquarters
+A4:C7:F6:Extreme Networks Headquarters
+B4:2D:56:Extreme Networks Headquarters
+88:7E:25:Extreme Networks Headquarters
+00:19:77:Extreme Networks Headquarters
+38:E2:CA:Katun Corporation
+B0:5B:99:Sagemcom Broadband SAS
+E8:0A:B9:Cisco Systems, Inc
+78:46:5F:Fiberhome Telecommunication Technologies Co.,LTD
+90:75:DE:Zebra Technologies Inc.
+80:BA:16:Micas Networks Inc.
+10:E9:92:INGRAM MICRO SERVICES
+78:F2:76:Cyklop Fastjet Technologies (Shanghai) Inc.
+20:F8:3B:Nabu Casa, Inc.
+F0:1B:24:zte corporation
+B8:4C:87:IEEE Registration Authority
+10:06:1C:Espressif Inc.
+E0:06:30:HUAWEI TECHNOLOGIES CO.,LTD
+04:D1:68:Sunplus Technology Co., Ltd.
+64:4C:69:CONPROVE
+DC:D1:60:Tianjin Changdatong Technology Co.,LTD
+64:4E:D7:HP Inc.
+9C:E3:30:Cisco Meraki
+04:A9:59:New H3C Technologies Co., Ltd
+0C:B9:83:Honor Device Co., Ltd.
+2C:B3:01:Honor Device Co., Ltd.
+E0:C2:B7:Masimo Corporation
+C8:8B:E8:Masimo Corporation
+E4:C7:67:Intel Corporate
+90:2D:77:Edgecore Americas Networking Corporation
+6C:FB:ED:GN Audio A/S
+E4:F2:7C:Juniper Networks
+90:6C:4B:Advance Security Electronics
+D4:8A:FC:Espressif Inc.
+E4:65:B8:Espressif Inc.
+E0:01:C7:Hui Zhou Gaoshengda Technology Co.,LTD
+B4:DF:91:Cisco Meraki
+98:EE:8C:zte corporation
+50:E4:78:Sichuan AI-Link Technology Co., Ltd.
+90:C7:10:zte corporation
+48:D4:75:Lampuga GmbH
+60:1A:C7:Nintendo Co.,Ltd
+48:DA:35:IEEE Registration Authority
+A8:81:FE:Luxul Tech Co., Ltd
+64:9A:08:Shenzhen SuperElectron Technology Co.,Ltd.
+50:F2:22:EM Microelectronic
+30:7A:57:Accuenergy (CANADA) Inc
+CC:EB:5E:Xiaomi Communications Co Ltd
+60:C7:8D:Juniper Networks
+DC:51:93:zte corporation
+74:78:A6:Fortinet, Inc.
+00:19:82:SmarDTV Corporation
+50:FE:0C:AzureWave Technology Inc.
+BC:FD:0C:Shenzhen Phaten Tech. LTD
+18:65:C7:Dongguan YIMO Technology Co.LTD
+0C:01:C8:DENSO Co.,Ltd
+F4:2E:48:zte corporation
+AC:D7:5B:Sagemcom Broadband SAS
+B4:C2:E0:Bouffalo Lab (Nanjing) Co., Ltd.
+04:09:86:Arcadyan Corporation
+48:1B:A4:Cisco Systems, Inc
+F0:EE:7A:Apple, Inc.
+20:3A:EB:zte corporation
+58:76:B3:Ubee Interactive Co., Limited
+E8:70:72:Hangzhou BroadLink Technology Co.,Ltd
+D8:DA:F1:HUAWEI TECHNOLOGIES CO.,LTD
+54:44:3B:HUAWEI TECHNOLOGIES CO.,LTD
+5C:70:75:HUAWEI TECHNOLOGIES CO.,LTD
+CC:03:FA:Vantiva USA LLC
+48:F7:C0:Vantiva USA LLC
+48:00:33:Vantiva USA LLC
+14:98:7D:Vantiva USA LLC
+58:23:8C:Vantiva USA LLC
+80:B2:34:Vantiva USA LLC
+84:17:EF:Vantiva USA LLC
+A4:56:CC:Vantiva USA LLC
+70:03:7E:Vantiva USA LLC
+44:1C:12:Vantiva USA LLC
+5C:76:95:Vantiva USA LLC
+AC:4C:A5:Vantiva USA LLC
+00:CB:7A:Vantiva USA LLC
+F8:D2:AC:Vantiva USA LLC
+CC:F3:C8:Vantiva USA LLC
+40:F3:B0:Texas Instruments
+14:9C:EF:Texas Instruments
+80:C4:1B:Texas Instruments
+34:68:B5:Texas Instruments
+58:AD:12:Apple, Inc.
+60:FD:A6:Apple, Inc.
+80:A9:97:Apple, Inc.
+34:8C:5E:Apple, Inc.
+D0:B2:C4:Vantiva USA LLC
+80:C6:AB:Vantiva USA LLC
+38:3F:B3:Vantiva USA LLC
+64:12:36:Vantiva USA LLC
+0C:75:D2:Hangzhou Hikvision Digital Technology Co.,Ltd.
+D8:77:66:Nurivoice Co., Ltd
+B8:A7:5E:Wuxi Xinjie Electric Co.,Ltd
+70:81:85:New H3C Technologies Co., Ltd
+50:D3:3B:cloudnineinfo
+84:C8:A0:Hui Zhou Gaoshengda Technology Co.,LTD
+A8:8B:28:SHENZHEN DIYANG SMART TECHNOLOGY CO.,LTD.
+08:F0:1E:eero inc.
+18:A5:FF:Arcadyan Corporation
+8C:1A:F3:Shenzhen Gooxi Information Security CO.,Ltd.
+F4:B6:C6:Indra Heera Technology LLP
+6C:03:B5:Cisco Systems, Inc
+58:C4:1E:IEEE Registration Authority
+A8:91:62:Sophos Ltd
+70:98:83:SHENZHEN KAYAN ELECTRONICS., LTD.
+F4:3A:7B:zte corporation
+68:9E:29:zte corporation
+E4:40:97:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+DC:B4:CA:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+8C:D5:4A:TAIYO YUDEN CO.,LTD
+A0:02:A5:Intel Corporate
+AC:C0:48:OnePlus Technology (Shenzhen) Co., Ltd
+40:84:32:Microchip Technology Inc.
+44:D5:C1:EM Microelectronic
+94:3B:B1:Kaon Group Co., Ltd.
+44:F0:34:Kaon Group Co., Ltd.
+88:8F:10:Shenzhen Max Infinite Technology Co.,Ltd.
+C4:79:9F:Haiguang Smart Device Co.,Ltd.
+84:28:59:Amazon Technologies Inc.
+50:16:F4:Motorola Mobility LLC, a Lenovo Company
+3C:08:CD:Juniper Networks
+68:50:5D:Halo Technologies
+7C:6A:8A:SINOBONDER Technology Co., Ltd.
+90:EC:E3:Nokia
+88:7B:2C:zte corporation
+60:DB:EF:Unify Software and Solutions GmbH & Co. KG
+00:16:F6:Nevion
+40:B7:FC:Phyplus Microelectronics Limited
+68:2C:4F:leerang corporation
+68:DD:B7:TP-LINK TECHNOLOGIES CO.,LTD.
+14:D8:64:TP-LINK TECHNOLOGIES CO.,LTD.
+B8:51:A9:Nokia
+D0:77:CE:Edgecore Networks Corporation
+EC:AF:F9:Hailo Technologies Ltd.
+FC:59:C0:Arista Networks
+64:1B:2F:Samsung Electronics Co.,Ltd
+9C:73:B1:Samsung Electronics Co.,Ltd
+38:8A:06:Samsung Electronics Co.,Ltd
+B0:D8:88:Panasonic Automotive Systems Co.,Ltd
+40:D4:F6:Honor Device Co., Ltd.
+7C:31:80:SMK corporation
+90:56:07:Sichuan AI-Link Technology Co., Ltd.
+48:31:33:Robert Bosch Elektronika Kft.
+B8:AB:61:Cisco Meraki
+78:2D:AD:HUAWEI TECHNOLOGIES CO.,LTD
+D0:61:58:HUAWEI TECHNOLOGIES CO.,LTD
+24:4B:F1:HUAWEI TECHNOLOGIES CO.,LTD
+60:15:2B:Palo Alto Networks
+44:D7:7E:Robert Bosch GmbH
+90:88:55:Cisco Systems, Inc
+68:71:61:Cisco Systems, Inc
+88:3F:37:UHTEK CO., LTD.
+00:80:B8:DMG MORI Digital Co., LTD
+28:73:F6:Amazon Technologies Inc.
+C4:EB:FF:zte corporation
+48:93:DC:UNIWAY INFOCOM PVT LTD
+5C:E6:88:VECOS Europe B.V.
+5C:28:86:Inventec(Chongqing) Corporation
+D4:BA:FA:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+4C:EC:0F:Cisco Systems, Inc
+84:3E:1D:Hui Zhou Gaoshengda Technology Co.,LTD
+E0:CB:1D:Amazon Technologies Inc.
+FC:84:A7:Murata Manufacturing Co., Ltd.
+3C:CB:4D:Avikus Co., Ltd
+60:1B:52:Vodafone Italia S.p.A.
+24:A4:2C:NETIO products a.s.
+70:2F:86:Marquardt GmbH
+C0:8F:20:Shenzhen Skyworth Digital  Technology  CO., Ltd
+08:FF:24:Shenzhen Skyworth Digital  Technology  CO., Ltd
+90:B6:7A:Shenzhen Skyworth Digital  Technology  CO., Ltd
+24:9A:C8:Shenzhen Skyworth Digital  Technology  CO., Ltd
+A8:88:1F:SERVERCOM (INDIA) PRIVATE LIMITED
+28:C0:1B:Shenzhen Skyworth Digital  Technology  CO., Ltd
+E0:28:B1:Shenzhen Skyworth Digital  Technology  CO., Ltd
+30:31:80:Shenzhen Skyworth Digital  Technology  CO., Ltd
+20:15:82:Apple, Inc.
+40:92:1A:Apple, Inc.
+10:E2:C9:Apple, Inc.
+04:36:B8:I&C Technology
+D0:43:1E:Dell Inc.
+F0:A0:B1:HUAWEI TECHNOLOGIES CO.,LTD
+40:4F:42:HUAWEI TECHNOLOGIES CO.,LTD
+30:86:F1:Fiberhome Telecommunication Technologies Co.,LTD
+00:C0:4F:Dell Inc.
+00:B0:D0:Dell Inc.
+00:19:B9:Dell Inc.
+00:1A:A0:Dell Inc.
+00:25:64:Dell Inc.
+A4:BA:DB:Dell Inc.
+38:A8:51:Quickset Defense Technologies, LLC
+78:2B:CB:Dell Inc.
+14:FE:B5:Dell Inc.
+18:03:73:Dell Inc.
+74:86:7A:Dell Inc.
+20:47:47:Dell Inc.
+00:0B:DB:Dell Inc.
+00:12:3F:Dell Inc.
+A4:1F:72:Dell Inc.
+00:1C:23:Dell Inc.
+84:7B:EB:Dell Inc.
+98:90:96:Dell Inc.
+80:18:44:Dell Inc.
+98:40:BB:Dell Inc.
+D4:81:D7:Dell Inc.
+F8:0D:A9:Zyxel Communications Corporation
+54:BF:64:Dell Inc.
+CC:C5:E5:Dell Inc.
+4C:D9:8F:Dell Inc.
+DC:F4:01:Dell Inc.
+6C:2B:59:Dell Inc.
+C8:F7:50:Dell Inc.
+98:E7:43:Dell Inc.
+18:5A:58:Dell Inc.
+D0:8E:79:Dell Inc.
+B4:45:06:Dell Inc.
+48:5A:0D:Juniper Networks
+E0:D8:48:Dell Inc.
+04:BF:1B:Dell Inc.
+58:10:31:Hon Hai Precision IND.CO.,LTD
+E0:3C:1C:IEEE Registration Authority
+00:09:93:Visteon Corporation
+EC:41:CA:Shenzhen TecAnswer Technology co.,ltd
+14:84:77:New H3C Technologies Co., Ltd
+14:96:2D:New H3C Technologies Co., Ltd
+C4:A6:4E:Quectel Wireless Solutions Co.,Ltd.
+70:66:B9:Huawei Device Co., Ltd.
+C4:A1:AE:Huawei Device Co., Ltd.
+48:6F:33:KYUNGWOO.SYSTEM, INC.
+08:61:95:Rockwell Automation
+24:BB:C9:Shenzhen SuperElectron Technology Co.,Ltd.
+00:00:BC:Rockwell Automation
+FC:D7:49:Amazon Technologies Inc.
+A8:71:16:Earda Technologies co Ltd
+E8:EB:DD:Guangzhou Qingying Acoustics Technology Co., Ltd
+54:8C:81:Hangzhou Hikvision Digital Technology Co.,Ltd.
+24:48:45:Hangzhou Hikvision Digital Technology Co.,Ltd.
+74:EE:8D:Apollo Intelligent Connectivity (Beijing) Technology Co., Ltd.
+D8:58:C6:Katch Asset Tracking Pty Limited 
+2C:C6:A0:Lumacron Technology Ltd.
+EC:C8:9C:Hangzhou Hikvision Digital Technology Co.,Ltd.
+8C:E7:48:Hangzhou Hikvision Digital Technology Co.,Ltd.
+24:28:FD:Hangzhou Hikvision Digital Technology Co.,Ltd.
+AC:B9:2F:Hangzhou Hikvision Digital Technology Co.,Ltd.
+D4:E8:53:Hangzhou Hikvision Digital Technology Co.,Ltd.
+24:28:FD:Hangzhou Hikvision Digital Technology Co.,Ltd.
+AC:B9:2F:Hangzhou Hikvision Digital Technology Co.,Ltd.
+D4:E8:53:Hangzhou Hikvision Digital Technology Co.,Ltd.
+24:0F:9B:Hangzhou Hikvision Digital Technology Co.,Ltd.
+C0:6D:ED:Hangzhou Hikvision Digital Technology Co.,Ltd.
+24:32:AE:Hangzhou Hikvision Digital Technology Co.,Ltd.
+E0:BA:AD:Hangzhou Hikvision Digital Technology Co.,Ltd.
+E0:CA:3C:Hangzhou Hikvision Digital Technology Co.,Ltd.
+DC:07:F8:Hangzhou Hikvision Digital Technology Co.,Ltd.
+64:DB:8B:Hangzhou Hikvision Digital Technology Co.,Ltd.
+94:E1:AC:Hangzhou Hikvision Digital Technology Co.,Ltd.
+58:03:FB:Hangzhou Hikvision Digital Technology Co.,Ltd.
+44:47:CC:Hangzhou Hikvision Digital Technology Co.,Ltd.
+98:DF:82:Hangzhou Hikvision Digital Technology Co.,Ltd.
+C0:56:E3:Hangzhou Hikvision Digital Technology Co.,Ltd.
+BC:AD:28:Hangzhou Hikvision Digital Technology Co.,Ltd.
+88:B6:BD:Flaircomm Microelectronics, Inc.
+2C:96:82:MitraStar Technology Corp.
+BC:49:B2:SHENZHEN ALONG COMMUNICATION TECH CO., LTD
+94:97:AE:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+0C:BD:75:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+AC:90:73:HUAWEI TECHNOLOGIES CO.,LTD
+00:03:51:Diebold Nixdorf
+F0:9F:C2:Ubiquiti Inc
+80:2A:A8:Ubiquiti Inc
+FC:1D:3A:HUAWEI TECHNOLOGIES CO.,LTD
+E4:BE:FB:HUAWEI TECHNOLOGIES CO.,LTD
+58:F8:D7:HUAWEI TECHNOLOGIES CO.,LTD
+78:8A:20:Ubiquiti Inc
+74:83:C2:Ubiquiti Inc
+E0:63:DA:Ubiquiti Inc
+24:5A:4C:Ubiquiti Inc
+60:22:32:Ubiquiti Inc
+E4:38:83:Ubiquiti Inc
+84:B5:9C:Juniper Networks
+5C:45:27:Juniper Networks
+EC:3E:F7:Juniper Networks
+00:21:59:Juniper Networks
+00:23:9C:Juniper Networks
+50:C5:8D:Juniper Networks
+28:C0:DA:Juniper Networks
+28:8A:1C:Juniper Networks
+B8:EA:98:Xiaomi Communications Co Ltd
+10:C4:CA:HUMAX Co., Ltd.
+AC:80:0A:Sony Corporation
+40:A6:77:Juniper Networks
+D8:18:D3:Juniper Networks
+F0:4B:3A:Juniper Networks
+C0:42:D0:Juniper Networks
+00:1B:C0:Juniper Networks
+44:EC:CE:Juniper Networks
+CC:E1:94:Juniper Networks
+E4:5D:37:Juniper Networks
+94:F7:AD:Juniper Networks
+78:4F:9B:Juniper Networks
+88:D9:8F:Juniper Networks
+78:50:7C:Juniper Networks
+F0:7C:C7:Juniper Networks
+00:05:85:Juniper Networks
+88:90:09:Juniper Networks
+00:CC:34:Juniper Networks
+E0:30:F9:Juniper Networks
+20:4E:71:Juniper Networks
+D4:04:FF:Juniper Networks
+84:C1:C1:Juniper Networks
+4C:73:4F:Juniper Networks
+D4:5A:3F:Juniper Networks
+04:69:8F:Juniper Networks
+58:C9:35:Chiun Mai Communication System, Inc
+7C:E2:CA:Juniper Networks
+A4:A5:28:Sichuan Tianyi Comheart Telecom Co.,LTD
+E8:78:EE:New H3C Technologies Co., Ltd
+EC:A7:AD:Barrot Technology Co.,Ltd.
+00:30:2B:Inalp Solutions AG
+F0:74:8D:Ruijie Networks Co.,LTD
+48:81:4E:E&M SOLUTION CO,.Ltd
+7C:4D:8F:HP Inc.
+9C:CB:F7:CLOUD STAR TECHNOLOGY CO., LTD.
+74:D5:58:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+F4:64:12:Sony Interactive Entertainment Inc.
+3C:F9:F0:zte corporation
+68:77:DA:zte corporation
+88:58:BE:kuosheng.com
+44:DB:D2:YEALINK(XIAMEN) NETWORK TECHNOLOGY CO.,LTD.
+E0:DC:A0:Siemens Industrial Automation Products Ltd., Chengdu
+1C:3B:62:HMD Global Oy
+5C:64:F1:Cisco Systems, Inc
+9C:DB:AF:HUAWEI TECHNOLOGIES CO.,LTD
+0C:2E:57:HUAWEI TECHNOLOGIES CO.,LTD
+E8:D7:75:HUAWEI TECHNOLOGIES CO.,LTD
+64:EC:65:vivo Mobile Communication Co., Ltd.
+F4:24:62:Selcom Electronics (Shanghai) Co., Ltd
+F4:A1:7F:Marquardt Electronics Technology (Shanghai) Co.Ltd
+48:BC:E1:Samsung Electronics Co.,Ltd
+B8:38:EF:ADVA Optical Networking Ltd.
+08:42:18:Asyril SA
+D8:5B:22:Shenzhen Hohunet Technology Co., Ltd
+D0:D0:03:Samsung Electronics Co.,Ltd
+5C:76:D5:Nokia
+8C:7A:00:Nokia
+A4:FC:14:Apple, Inc.
+A8:1A:F1:Apple, Inc.
+70:58:46:Trig Avionics Limited
+08:91:A3:Amazon Technologies Inc.
+0C:D9:23:GOCLOUD Networks(GAOKE Networks)
+84:39:8F:Fortinet, Inc.
+B4:ED:D5:Quectel Wireless Solutions Co.,Ltd.
+2C:D1:C6:Murata Manufacturing Co., Ltd.
+B8:5C:EE:Baidu Online Network Technology (Beijing) Co., Ltd
+CC:08:FA:Apple, Inc.
+90:9B:6F:Apple, Inc.
+74:73:B4:Apple, Inc.
+F8:3C:80:MITSUMI ELECTRIC CO.,LTD.
+D8:3A:DD:Raspberry Pi Trading Ltd
+70:F8:AE:Microsoft Corporation
+00:0F:2A:Cableware Electronics
+BC:64:D9:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+30:1F:48:zte corporation
+7C:C7:4A:Fiberhome Telecommunication Technologies Co.,LTD
+38:FC:34:Huawei Device Co., Ltd.
+3C:F6:92:Huawei Device Co., Ltd.
+94:0E:E7:HUAWEI TECHNOLOGIES CO.,LTD
+A8:B2:71:HUAWEI TECHNOLOGIES CO.,LTD
+64:05:E4:ALPSALPINE CO,.LTD
+DC:AC:6F:Everytale Inc
+F4:15:32:PETAiO (NanJing), Inc.
+2C:AB:33:Texas Instruments
+28:B5:E8:Texas Instruments
+08:C3:B3:TCL King Electrical Appliances(Huizhou)Co.,Ltd
+20:45:69:ITEL MOBILE LIMITED
+D4:63:52:Vutility Inc.
+D8:21:DA:SERNET (SUZHOU) TECHNOLOGIES CORPORATION
+08:F1:B3:Cisco Meraki
+BC:E8:FA:GUANGDONG OPPO MOBILE TELECOMMUNICATIONS CORP.,LTD
+50:5A:65:AzureWave Technology Inc.
+C4:A5:59:IEEE Registration Authority
+6C:0C:9A:Amazon Technologies Inc.
+CC:00:F1:Sagemcom Broadband SAS
+30:82:16:Apple, Inc.
+8C:D0:B2:Beijing Xiaomi Mobile Software Co., Ltd
+C4:A0:52:Motorola Mobility LLC, a Lenovo Company
+84:90:0A:Arcadyan Corporation
+80:76:C2:GD Midea Air-Conditioning Equipment Co.,Ltd.
+F0:4A:3D:Bosch Thermotechnik GmbH
+94:1F:A2:Wuhan YuXin Semiconductor Co., Ltd.
+B4:9D:FD:Shenzhen SDMC Technology CO.,Ltd.
+F4:1A:9C:Xiaomi Communications Co Ltd
+00:1A:EB:Allied Telesis K.K.
+DC:06:82:Accessia Technology Ltd.
+44:D2:67:Snorble
+B0:BC:7A:Harman/Becker Automotive Systems GmbH
+48:77:06:NXP Semiconductor (Tianjin) LTD.
+0C:CC:47:IEEE Registration Authority
+5C:3E:06:Cisco Systems, Inc
+C8:28:E5:Cisco Systems, Inc
+B0:FC:88:Sagemcom Broadband SAS
+34:87:3D:Quectel Wireless Solutions Co.,Ltd.
+C4:41:37:Quectel Wireless Solutions Co.,Ltd.
+6C:D1:99:vivo Mobile Communication Co., Ltd.
+D0:40:BE:NPO RPS LLC
+10:D6:80:Tendyron Corporation
+00:3E:73:Mist Systems, Inc.
+0C:FC:18:HUAWEI TECHNOLOGIES CO.,LTD
+F4:4D:AD:Cable Matters Inc.
+80:AB:4D:Nokia Solutions and Networks GmbH & Co. KG
+4C:BA:7D:Gemtek Technology Co., Ltd.
+50:02:38:Nokia Shanghai Bell Co., Ltd.
+AC:AD:4B:zte corporation
+A8:16:9D:Hui Zhou Gaoshengda Technology Co.,LTD
+F0:22:1D:IEEE Registration Authority
+9C:54:40:ChengDu TD Tech
+50:26:EF:Murata Manufacturing Co., Ltd.
+44:49:88:Intel Corporate
+FC:91:89:Sichuan Tianyi Comheart Telecom Co.,LTD
+1C:1A:1B:Shanghai Sunmi Technology Co.,Ltd.
+80:38:D4:Fibercentury Network Technology Co.,Ltd.
+7C:29:6F:Apple, Inc.
+40:ED:CF:Apple, Inc.
+74:05:7C:Qorvo International Pte. Ltd.
+8C:98:6B:Apple, Inc.
+1C:86:82:Apple, Inc.
+80:54:E3:Apple, Inc.
+10:2E:00:Intel Corporate
+20:3A:43:Intel Corporate
+3C:3B:99:ITEL MOBILE LIMITED
+FC:33:57:KAGA FEI Co., Ltd.
+9C:DE:4D:ML vision Co.,LTD
+F8:F0:C5:Suzhou Kuhan Information Technologies Co.,Ltd.
+F8:DE:73:HUAWEI TECHNOLOGIES CO.,LTD
+EC:1A:02:HUAWEI TECHNOLOGIES CO.,LTD
+90:27:78:Open Infrastructure
+68:41:8F:Telechips, Inc.
+BC:9E:BB:Nintendo Co.,Ltd
+D0:09:C8:Cisco Systems, Inc
+D0:39:57:Liteon Technology Corporation
+48:E7:29:Espressif Inc.
+E8:BA:E2:Xplora Technologies AS
+5C:A0:6C:Realme Chongqing Mobile Telecommunications Corp.,Ltd.
+A8:3B:76:CLOUD NETWORK TECHNOLOGY SINGAPORE PTE. LTD.
+40:E1:1C:shenzhen Cloud High Communication Technology Co.,Ltd
+44:64:3C:Cisco Systems, Inc
+24:16:1B:Cisco Systems, Inc
+A8:40:0B:Visteon Corporation
+20:31:8D:Giax GmbH
+3C:B0:7E:Arounds Intelligent Equipment Co., Ltd.
+C0:4E:8A:HUAWEI TECHNOLOGIES CO.,LTD
+08:56:9B:WiZ
+08:1A:FD:Huawei Device Co., Ltd.
+C0:BF:AC:Huawei Device Co., Ltd.
+44:27:2E:Huawei Device Co., Ltd.
+10:66:50:Robert Bosch JuP1
+A8:0C:03:Florawise
+90:DA:F9:Siemens Rail Automation SAU
+F8:00:9D:INTRACOM DEFENSE S.A.
+20:16:42:Microsoft Corporation
+8C:94:6A:New H3C Technologies Co., Ltd
+FC:11:65:Cambium Networks Limited
+CC:8D:B5:Shenzhen SuperElectron Technology Co.,Ltd.
+AC:EE:64:Shenzhen SuperElectron Technology Co.,Ltd.
+00:12:F3:u-blox AG
+54:70:68:VTech Communications Limited
+C8:40:52:PAX Computer Technology(Shenzhen) Ltd.
+68:EE:4B:Sharetronic Data Technology Co.,Ltd
+48:C3:5A:LENOVO(BEIJING)CO., LTD.
+C4:61:C7:Microsoft Corporation
+AC:CB:36:Fiberhome Telecommunication Technologies Co.,LTD
+60:70:6C:Google, Inc.
+C8:2A:DD:Google, Inc.
+24:09:35:Samsung Electronics Co.,Ltd
+B4:DB:91:CELESTICA INC.
+C4:83:72:IEEE Registration Authority
+C0:A5:E8:Intel Corporate
+90:65:84:Intel Corporate
+28:C5:D2:Intel Corporate
+E4:8C:73:Realme Chongqing Mobile Telecommunications Corp.,Ltd.
+2C:B6:C8:Raisecom Technology CO., LTD
+D8:34:D1:Shenzhen Orange Digital Technology Co.,Ltd
+84:22:89:Samsung Electronics Co.,Ltd
+84:AA:A4:SONoC Corp.
+88:3C:93:Alcatel-Lucent Enterprise
+FC:DF:00:GD Midea Air-Conditioning Equipment Co.,Ltd.
+E8:BF:DB:Inodesign Group
+28:7E:80:Hui Zhou Gaoshengda Technology Co.,LTD
+0C:9F:71:Dolphin Electronics (DongGuan) Co., Ltd.
+1C:8B:76:Calix Inc.
+74:58:89:Multilaser Industrial S.A.
+E8:FF:98:Huawei Device Co., Ltd.
+24:15:51:Huawei Device Co., Ltd.
+58:95:7E:Huawei Device Co., Ltd.
+2C:94:52:HUAWEI TECHNOLOGIES CO.,LTD
+60:01:B1:HUAWEI TECHNOLOGIES CO.,LTD
+B8:14:4D:Apple, Inc.
+EC:28:D3:Apple, Inc.
+5C:BB:EE:zte corporation
+08:65:18:Apple, Inc.
+2C:57:CE:Apple, Inc.
+80:39:8C:Samsung Electronics Co.,Ltd
+98:0D:6F:Samsung Electronics Co.,Ltd
+1C:90:FF:Tuya Smart Inc.
+10:82:3D:Ruijie Networks Co.,LTD
+98:20:44:New H3C Technologies Co., Ltd
+D8:A0:E8:zte corporation
+80:56:3C:ZF
+A0:44:F3:RafaelMicro
+F4:2B:7D:Chipsguide technology CO.,LTD.
+8C:52:19:SHARP Corporation
+2C:9E:00:Sony Interactive Entertainment Inc.
+DC:6A:E7:Xiaomi Communications Co Ltd
+7C:A4:49:Xiaomi Communications Co Ltd
+D0:06:6A:Cornelis Networks, Inc.
+88:3C:C5:IEEE Registration Authority
+C4:04:D8:Aviva Links Inc.
+AC:96:5B:Lucid Motors
+08:91:15:Amazon Technologies Inc.
+74:D4:23:Amazon Technologies Inc.
+E0:47:35:Ericsson AB
+90:98:77:Vestel Elektronik San ve Tic. A.S.
+EC:A1:38:Amazon Technologies Inc.
+E0:EF:02:Chengdu Quanjing Intelligent Technology Co.,Ltd
+4C:A3:A7:TECNO MOBILE LIMITED
+B0:67:B5:Apple, Inc.
+5C:52:84:Apple, Inc.
+C0:95:6D:Apple, Inc.
+3C:39:C8:Apple, Inc.
+A8:AB:B5:Apple, Inc.
+58:64:C4:Apple, Inc.
+40:A5:3B:Nokia
+74:80:3F:Renesas Electronics (Penang) Sdn. Bhd.
+90:0A:62:Inventus Power Eletronica do Brasil LTDA
+50:5F:B5:ASKEY COMPUTER CORP
+88:DE:7C:ASKEY COMPUTER CORP
+04:57:47:GoPro
+5C:60:BA:HP Inc.
+BC:F8:8B:zte corporation
+68:53:9D:EM Microelectronic
+04:43:FD:Sichuan Tianyi Comheart Telecom Co.,LTD
+A4:89:7E:Guangzhou Yuhong Technology Co.,Ltd.
+EC:1D:9E:Quectel Wireless Solutions Co.,Ltd.
+80:64:6F:Espressif Inc.
+3C:A7:AE:zte corporation
+AC:31:84:Huawei Device Co., Ltd.
+50:3F:50:Huawei Device Co., Ltd.
+2C:69:1D:IEEE Registration Authority
+CC:29:BD:zte corporation
+38:5C:FB:Silicon Laboratories
+C4:3D:1A:Intel Corporate
+04:E8:B9:Intel Corporate
+E0:2E:0B:Intel Corporate
+E8:CC:8C:Chengdu Jiarui Hualian Communication Technology Co
+E4:65:64:SHENZHEN KTC TECHNOLOGY CO.,LTD
+3C:E0:64:Texas Instruments
+E0:92:8F:Texas Instruments
+CC:03:7B:Texas Instruments
+58:1C:F8:Intel Corporate
+AC:19:8E:Intel Corporate
+C8:5E:A9:Intel Corporate
+C8:BF:4C:Beijing Xiaomi Mobile Software Co., Ltd
+7C:DE:78:New H3C Technologies Co., Ltd
+B8:FB:AF:Xiamen IPRT Technology CO.,LTD
+34:85:18:Espressif Inc.
+E0:51:D8:China Dragon Technology Limited
+54:9A:11:IEEE Registration Authority
+EC:E6:A2:Fiberhome Telecommunication Technologies Co.,LTD
+AC:84:C6:TP-LINK TECHNOLOGIES CO.,LTD.
+1C:0E:D3:Sichuan Tianyi Comheart Telecom Co.,LTD
+38:0A:4F:PRACHI ENTERPRISES
+A0:CD:F3:Murata Manufacturing Co., Ltd.
+AC:5A:F0:LG Electronics
+EC:A6:2F:HUAWEI TECHNOLOGIES CO.,LTD
