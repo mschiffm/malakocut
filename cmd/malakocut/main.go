@@ -48,6 +48,7 @@ func main() {
 	blocklistFlag := flag.String("blocklist", "configs/blocklist.conf", "Path to streaming domain blocklist file")
 	maxFlows := flag.Int("max-flows", 100000, "Maximum number of concurrent flows in memory")
 	exporterFlag := flag.String("exporter", "none", "Telemetry exporter: 'secops' or 'none'")
+	filterFlag := flag.String("filter", "tcp or udp or icmp or icmp6", "Global BPF filter")
 	flag.Parse()
 
 	if *exporterFlag == "secops" && (customerID == "" || ingestionURL == "") {
@@ -57,10 +58,6 @@ func main() {
 	if *exporterFlag == "secops" && !strings.HasPrefix(ingestionURL, "https://") {
 		log.Printf("[!] WARNING: Ingestion URL is insecure (HTTP). It is strongly recommended to use HTTPS for telemetry delivery.")
 	}
-
-	// Refined noise filter: Exclude Broadcast, Multicast, ARP, DHCP, mDNS, SSDP, NetBIOS, LLMNR
-	baseFilter := "not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)"
-	filterFlag := flag.String("filter", baseFilter, "Global BPF filter for both telemetry and PCAP journaling")
 
 	finalFilter := *filterFlag
 	if *excludeWeb {

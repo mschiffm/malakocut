@@ -37,7 +37,7 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 	}
 
 	client := cfg.HTTPClient
-	if client == nil {
+	if client == nil && cfg.ExporterType == "secops" {
 		keyPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 		if keyPath == "" {
 			keyPath = "secops_key.json"
@@ -57,11 +57,8 @@ func NewMalakocut(cfg Config) (*Malakocut, error) {
 
 	var pcapBPF *pcap.BPF
 	if cfg.PcapFilter != "" {
-		linkType := layers.LinkTypeEthernet
-		if cfg.Interface == "lo" {
-			linkType = layers.LinkTypeNull
-		}
-		bpf, err := pcap.NewBPF(linkType, 65536, cfg.PcapFilter)
+		// Use a high snaplen for compilation to avoid "expression too long" errors
+		bpf, err := pcap.NewBPF(layers.LinkTypeEthernet, 65536, cfg.PcapFilter)
 		if err != nil {
 			return nil, fmt.Errorf("failed to compile BPF filter '%s': %w", cfg.PcapFilter, err)
 		}
