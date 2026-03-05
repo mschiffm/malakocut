@@ -28,8 +28,8 @@ const (
 	COLOR_YEL   = "\033[33m"
 	COLOR_RED   = "\033[31m"
 	COLOR_REV   = "\033[7m"
-	ICON_IN     = "📥"
-	ICON_OUT    = "📤"
+	ICON_IN     = "🔹"
+	ICON_OUT    = "🔸"
 	ICON_LOCAL  = "🏠"
 )
 
@@ -75,6 +75,7 @@ func usage() {
 	fmt.Printf("  %sstatus%s    Show daemon uptime, disk health, and ingestion metrics.\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Printf("  %stop%s       Interactive live-updating flow visualizer.\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Println("\r\nInteractive shortcuts (top mode):")
+	fmt.Println("  ?         Show this help and legend")
 	fmt.Println("  q         Quit to shell")
 	fmt.Println("  b         Sort by Bytes")
 	fmt.Println("  p         Sort by Packets")
@@ -240,6 +241,7 @@ func showTop() {
 
 	client := getClient()
 	sortBy := "bytes"
+	showHelp := false
 	
 	cmdChan := make(chan rune)
 	go func() {
@@ -265,22 +267,34 @@ func showTop() {
 			case 'q', 3: // 'q' or Ctrl+C
 				fmt.Print("\r\n")
 				return
+			case '?':
+				showHelp = !showHelp
 			case 'b':
 				sortBy = "bytes"
+				showHelp = false
 			case 'p':
 				sortBy = "packets"
+				showHelp = false
 			case 'd':
 				sortBy = "duration"
+				showHelp = false
 			case 'i':
 				sortBy = "idle"
+				showHelp = false
 			case 'r':
 				resolveDNS = !resolveDNS
 			case 'h':
 				prettyPrint = !prettyPrint
 			}
-			renderTop(client, sortBy)
+			if showHelp {
+				renderHelp()
+			} else {
+				renderTop(client, sortBy)
+			}
 		case <-ticker.C:
-			renderTop(client, sortBy)
+			if !showHelp {
+				renderTop(client, sortBy)
+			}
 		}
 	}
 }
@@ -335,8 +349,8 @@ func renderTop(client *http.Client, sortBy string) {
 		COLOR_GREEN, len(flows), COLOR_RESET,
 		COLOR_YEL, sortBy, prettyStr, COLOR_RESET, resolveDNS)
 	
-	fmt.Printf("Shortcuts: %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve, %sh%suman\r\n\r\n",
-		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("Shortcuts: %s?%selp, %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve, %sh%suman\r\n\r\n",
+		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	fmt.Print(COLOR_REV)
 	fmt.Printf("%-8s %-*s %-*s %-8s %-14s %10s %8s %10s %10s",
@@ -404,4 +418,23 @@ func renderTop(client *http.Client, sortBy string) {
 		fmt.Printf("%10s ", prettyTime(f.DurationS))
 		fmt.Printf("%10s\r\n", prettyTime(f.IdleS))
 	}
+}
+
+func renderHelp() {
+	fmt.Print("\033[H\033[2J")
+	fmt.Printf("%sMalakocut Top - Help & Legend%s\r\n\r\n", COLOR_BOLD+COLOR_CYAN, COLOR_RESET)
+	
+	fmt.Printf("%sShortcuts:%s\r\n", COLOR_BOLD, COLOR_RESET)
+	fmt.Println("  ?         Toggle this help screen")
+	fmt.Println("  q         Quit to shell")
+	fmt.Println("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness")
+	fmt.Println("  r         Toggle DNS & ICMP Name Resolution")
+	fmt.Println("  h         Toggle Human-readable Scaling (K, M, G, etc.)")
+	
+	fmt.Printf("\r\n%sFlow Legend (SRC Column Icons):%s\r\n", COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("  %s %-10s Traffic entering from a Public/External IP\r\n", ICON_IN, "Inbound")
+	fmt.Printf("  %s %-10s Traffic leaving to a Public/External IP\r\n", ICON_OUT, "Outbound")
+	fmt.Printf("  %s %-10s Internal-to-Internal traffic (Local/Lateral)\r\n", ICON_LOCAL, "Local")
+
+	fmt.Printf("\r\n%sPress any key (except q) to return to live view...%s\r\n", COLOR_REV, COLOR_RESET)
 }
