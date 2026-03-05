@@ -19,6 +19,16 @@ import (
 	"github.com/segmentio/encoding/json"
 )
 
+func TestMain(m *testing.M) {
+	// Change working directory to project root so tests can find configs/
+	err := os.Chdir("../..")
+	if err != nil {
+		fmt.Printf("could not change to project root: %v", err)
+		os.Exit(1)
+	}
+	os.Exit(m.Run())
+}
+
 type mockTripper struct{}
 
 func (m *mockTripper) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -79,7 +89,7 @@ func TestProcessPacketAndBuffer(t *testing.T) {
 	gopacket.SerializeLayers(buf, gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}, eth, ip, tcp, gopacket.Payload([]byte("hello")))
 	packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
 
-	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil, nil, nil)
+	m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeTCP}, eth, ip, nil, tcp, nil, nil, nil)
 	m.EvictFlow("192.168.1.10:12345-8.8.8.8:443-TCP")
 
 	m.db.View(func(txn *badger.Txn) error {
@@ -173,7 +183,7 @@ func TestFlowTableConcurrency(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for j := 0; j < numPackets; j++ {
-				m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil, nil, nil)
+				m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeTCP}, eth, ip, nil, tcp, nil, nil, nil)
 			}
 		}()
 	}
@@ -213,7 +223,7 @@ func TestMaxFlowsStrictEnforcement(t *testing.T) {
 		buf := gopacket.NewSerializeBuffer()
 		gopacket.SerializeLayers(buf, gopacket.SerializeOptions{}, eth, ip, tcp)
 		packet := gopacket.NewPacket(buf.Bytes(), layers.LayerTypeEthernet, gopacket.Default)
-		m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeIPv4, layers.LayerTypeTCP}, ip, nil, tcp, nil, nil, nil)
+		m.handleDecodedPacket(packet, []gopacket.LayerType{layers.LayerTypeEthernet, layers.LayerTypeIPv4, layers.LayerTypeTCP}, eth, ip, nil, tcp, nil, nil, nil)
 	}
 
 	m.flowMu.RLock()

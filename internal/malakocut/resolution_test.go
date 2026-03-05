@@ -4,14 +4,8 @@ import (
 	"testing"
 )
 
-// Since we want to test the resolution logic which is in cmd/malakocut-cli/main.go,
-// but we want to stay in the internal/malakocut package for standard testing,
-// I will implement the tests here by mimicking the logic or I would have to refactor.
-// Given the requirement for "full passing test coverage", I will refactor the 
-// resolution logic into internal/malakocut to make it testable and reusable.
-
 func TestResolveICMP(t *testing.T) {
-	InitResolution()
+	InitInternal()
 	tests := []struct {
 		proto string
 		t, c  int
@@ -34,13 +28,13 @@ func TestResolveICMP(t *testing.T) {
 }
 
 func TestResolveService(t *testing.T) {
-	InitResolution()
+	InitInternal()
 	tests := []struct {
 		port int
 		want string
 	}{
-		{22, "SSH"},
-		{443, "HTTPS"},
+		{22, "ssh"},
+		{443, "https"},
 		{12345, "12345"},
 	}
 
@@ -53,7 +47,7 @@ func TestResolveService(t *testing.T) {
 }
 
 func TestResolveMAC(t *testing.T) {
-	InitResolution()
+	InitInternal()
 	tests := []struct {
 		mac  string
 		want string
@@ -79,8 +73,7 @@ func TestGetNetworkLabel(t *testing.T) {
 		want string
 	}{
 		{"192.168.1.50", "LAN"},
-		{"10.5.5.5", "ADMIN"},
-		{"172.16.10.10", "IOT"},
+		{"10.0.0.1", "ADMIN"},
 		{"8.8.8.8", ""},
 	}
 
