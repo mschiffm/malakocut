@@ -1,1 +1,1 @@
-(tcp or udp or icmp or icmp6) and not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)
+tcp or udp or icmp or icmp6

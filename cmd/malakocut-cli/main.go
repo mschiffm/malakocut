@@ -281,7 +281,7 @@ func showTop() {
 	client := getClient()
 	sortBy := "bytes"
 	showHelp := false
-	hideNoise := true
+	hideNoise := false
 	
 	cmdChan := make(chan rune)
 	go func() {

@@ -75,12 +75,12 @@ func (m *Malakocut) StartListener(iface string) error {
 			// 3. Telemetry Processing (Synchronous to avoid AF_PACKET buffer races)
 			decoded = decoded[:0] // Reset slice without reallocating
 			_ = parser.DecodeLayers(packet.Data(), &decoded)
-			m.handleDecodedPacket(packet, decoded, &ip4, &ip6, &tcp, &udp, &icmp4, &icmp6)
+			m.handleDecodedPacket(packet, decoded, &eth, &ip4, &ip6, &tcp, &udp, &icmp4, &icmp6)
 		}
 	}
 }
 
-func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopacket.LayerType, ip4 *layers.IPv4, ip6 *layers.IPv6, tcp *layers.TCP, udp *layers.UDP, icmp4 *layers.ICMPv4, icmp6 *layers.ICMPv6) {
+func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopacket.LayerType, eth *layers.Ethernet, ip4 *layers.IPv4, ip6 *layers.IPv6, tcp *layers.TCP, udp *layers.UDP, icmp4 *layers.ICMPv4, icmp6 *layers.ICMPv6) {
 	var srcIP, dstIP, protocol, srcMAC, dstMAC string
 	var srcPort, dstPort int
 	var l3Found bool
@@ -89,10 +89,9 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 	var isICMP bool
 	var icmpType, icmpCode int
 
-	for i, lt := range decoded {
+	for _, lt := range decoded {
 		switch lt {
 		case layers.LayerTypeEthernet:
-			eth := packet.LinkLayer().(*layers.Ethernet)
 			srcMAC = eth.SrcMAC.String()
 			dstMAC = eth.DstMAC.String()
 		case layers.LayerTypeIPv4:
@@ -126,7 +125,6 @@ func (m *Malakocut) handleDecodedPacket(packet gopacket.Packet, decoded []gopack
 			icmpType = int(icmp6.TypeCode.Type())
 			icmpCode = int(icmp6.TypeCode.Code())
 		}
-		_ = i
 	}
 
 	if !l3Found {
