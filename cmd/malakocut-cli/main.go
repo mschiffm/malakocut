@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
@@ -21,6 +22,7 @@ import (
 
 const (
 	SOCKET_PATH = "/var/run/malakocut.sock"
+	IGNORE_FILE = "/etc/malakocut/configs/cli_ignore.conf"
 	COLOR_RESET = "\033[0m"
 	COLOR_BOLD  = "\033[1m"
 	COLOR_CYAN  = "\033[36m"
@@ -38,7 +40,43 @@ var (
 	prettyPrint bool
 	dnsCache    = make(map[string]string)
 	cacheMu     sync.RWMutex
+	ignoreRules []IgnoreRule
 )
+
+type IgnoreRule struct {
+	Type  string
+	Value string
+}
+
+func loadIgnoreRules() {
+	path := IGNORE_FILE
+	f, err := os.Open(path)
+	if err != nil {
+		path = "configs/cli_ignore.conf"
+		f, err = os.Open(path)
+		if err != nil {
+			return
+		}
+	}
+	defer f.Close()
+
+	var newRules []IgnoreRule
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) == 2 {
+			newRules = append(newRules, IgnoreRule{
+				Type:  strings.ToLower(strings.TrimSpace(parts[0])),
+				Value: strings.ToLower(strings.TrimSpace(parts[1])),
+			})
+		}
+	}
+	ignoreRules = newRules
+}
 
 func main() {
 	flag.BoolVar(&resolveDNS, "resolve", false, "Enable reverse DNS resolution for IP addresses")
@@ -233,6 +271,7 @@ func printTopPorts(ports map[int]int64) {
 
 func showTop() {
 	malakocut.InitResolution()
+	loadIgnoreRules()
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		log.Fatal(err)
@@ -302,6 +341,34 @@ func showTop() {
 	}
 }
 
+func matchesIgnore(f malakocut.FlowMetadata) bool {
+	for _, rule := range ignoreRules {
+		switch rule.Type {
+		case "ip":
+			if strings.ToLower(f.SrcIP) == rule.Value || strings.ToLower(f.DstIP) == rule.Value {
+				return true
+			}
+		case "port":
+			p, _ := net.LookupPort("tcp", rule.Value) // Simplistic port lookup
+			if p == 0 {
+				fmt.Sscanf(rule.Value, "%d", &p)
+			}
+			if f.SrcPort == p || f.DstPort == p {
+				return true
+			}
+		case "proto":
+			if strings.ToLower(f.Protocol) == rule.Value {
+				return true
+			}
+		case "domain":
+			// This would require resolved hostnames, which we do asynchronously.
+			// For now, we match against IP strings if they look like they might be part of a domain
+			// or we can skip domain matching in the CLI for simplicity since the daemon has it.
+		}
+	}
+	return false
+}
+
 func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 	resp, err := client.Get("http://localhost/flows")
 	if err != nil {
@@ -314,16 +381,18 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 	json.NewDecoder(resp.Body).Decode(&flows)
 	totalFetched := len(flows)
 
-	// Filter noise if enabled
-	if hideNoise {
-		filtered := make([]malakocut.FlowMetadata, 0, len(flows))
-		for _, f := range flows {
-			if !malakocut.IsMulticastOrBroadcast(f.DstIP) {
-				filtered = append(filtered, f)
-			}
+	// Filter noise and user-defined ignore rules
+	filtered := make([]malakocut.FlowMetadata, 0, len(flows))
+	for _, f := range flows {
+		if hideNoise && malakocut.IsMulticastOrBroadcast(f.DstIP) {
+			continue
 		}
-		flows = filtered
+		if matchesIgnore(f) {
+			continue
+		}
+		filtered = append(filtered, f)
 	}
+	flows = filtered
 
 	sort.Slice(flows, func(i, j int) bool {
 		switch sortBy {

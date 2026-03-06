@@ -46,9 +46,10 @@ func main() {
 	ifaceFlag := flag.String("interface", DEFAULT_INTERFACE, "Network interface")
 	excludeWeb := flag.Bool("exclude-web", false, "Exclude HTTP/HTTPS (80/443) traffic from both telemetry and journaling")
 	blocklistFlag := flag.String("blocklist", "configs/blocklist.conf", "Path to streaming domain blocklist file")
+	captureFilterFlag := flag.String("capture-filter", "/etc/malakocut/configs/capture.bpf", "Path to BPF capture filter file")
 	maxFlows := flag.Int("max-flows", 100000, "Maximum number of concurrent flows in memory")
 	exporterFlag := flag.String("exporter", "none", "Telemetry exporter: 'secops' or 'none'")
-	filterFlag := flag.String("filter", "(tcp or udp or icmp or icmp6) and not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)", "Global BPF filter")
+	filterFlag := flag.String("filter", "(tcp or udp or icmp or icmp6) and not (broadcast or multicast or arp or port 67 or port 68 or port 5353 or port 1900 or port 137 or port 138 or port 5355)", "Global BPF filter (overridden by capture-filter file if exists)")
 	flag.Parse()
 
 	if *exporterFlag == "secops" && (customerID == "" || ingestionURL == "") {
@@ -60,6 +61,24 @@ func main() {
 	}
 
 	finalFilter := *filterFlag
+	// Try to load filter from file
+	if bpfBytes, err := os.ReadFile(*captureFilterFlag); err == nil {
+		content := strings.TrimSpace(string(bpfBytes))
+		if content != "" {
+			finalFilter = content
+			log.Printf("[*] Loaded capture filter from %s", *captureFilterFlag)
+		}
+	} else {
+		// Try local path if /etc fails (for dev)
+		if bpfBytes, err := os.ReadFile("configs/capture.bpf"); err == nil {
+			content := strings.TrimSpace(string(bpfBytes))
+			if content != "" {
+				finalFilter = content
+				log.Printf("[*] Loaded capture filter from configs/capture.bpf")
+			}
+		}
+	}
+
 	if *excludeWeb {
 		finalFilter = fmt.Sprintf("(%s) and not (port 80 or port 443)", finalFilter)
 	}
