@@ -115,7 +115,9 @@ func usage() {
 	fmt.Println("\r\nInteractive shortcuts (top mode):")
 	fmt.Println("  ?         Show help and legend")
 	fmt.Println("  q         Quit to shell")
-	fmt.Println("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness")
+	fmt.Println("  b/p/d/i/o Sort by Bytes, Packets, Duration, Idleness, or Protocol")
+	fmt.Println("  f         Cycle Protocol Filter (All, TCP, UDP, ICMP)")
+	fmt.Println("  x         Toggle Remote-only flows (at least one external host)")
 	fmt.Println("  r         Toggle DNS & ICMP resolution")
 	fmt.Println("  h         Toggle Human-readable scaling")
 	fmt.Println("  m         Toggle Noise (Broadcast/Multicast) visibility")
@@ -282,6 +284,8 @@ func showTop() {
 	sortBy := "bytes"
 	showHelp := false
 	hideNoise := false
+	remoteOnly := false
+	filterProto := "" // "", "TCP", "UDP", "ICMP"
 	
 	cmdChan := make(chan rune)
 	go func() {
@@ -298,7 +302,7 @@ func showTop() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	renderTop(client, sortBy, hideNoise)
+	renderTop(client, sortBy, hideNoise, remoteOnly, filterProto)
 
 	for {
 		select {
@@ -311,6 +315,19 @@ func showTop() {
 				showHelp = !showHelp
 			case 'm':
 				hideNoise = !hideNoise
+			case 'x':
+				remoteOnly = !remoteOnly
+			case 'f':
+				switch filterProto {
+				case "":
+					filterProto = "TCP"
+				case "TCP":
+					filterProto = "UDP"
+				case "UDP":
+					filterProto = "ICMP"
+				default:
+					filterProto = ""
+				}
 			case 'b':
 				sortBy = "bytes"
 				showHelp = false
@@ -323,6 +340,9 @@ func showTop() {
 			case 'i':
 				sortBy = "idle"
 				showHelp = false
+			case 'o':
+				sortBy = "protocol"
+				showHelp = false
 			case 'r':
 				resolveDNS = !resolveDNS
 			case 'h':
@@ -331,11 +351,11 @@ func showTop() {
 			if showHelp {
 				renderHelp()
 			} else {
-				renderTop(client, sortBy, hideNoise)
+				renderTop(client, sortBy, hideNoise, remoteOnly, filterProto)
 			}
 		case <-ticker.C:
 			if !showHelp {
-				renderTop(client, sortBy, hideNoise)
+				renderTop(client, sortBy, hideNoise, remoteOnly, filterProto)
 			}
 		}
 	}
@@ -369,7 +389,7 @@ func matchesIgnore(f malakocut.FlowMetadata) bool {
 	return false
 }
 
-func renderTop(client *http.Client, sortBy string, hideNoise bool) {
+func renderTop(client *http.Client, sortBy string, hideNoise, remoteOnly bool, filterProto string) {
 	resp, err := client.Get("http://localhost/flows")
 	if err != nil {
 		fmt.Printf("\r\nError: %v\r\n", err)
@@ -387,6 +407,18 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 		if hideNoise && malakocut.IsMulticastOrBroadcast(f.DstIP) {
 			continue
 		}
+		if remoteOnly {
+			srcInt := malakocut.IsInternal(f.SrcIP)
+			dstInt := malakocut.IsInternal(f.DstIP)
+			if srcInt && dstInt {
+				continue
+			}
+		}
+		if filterProto != "" {
+			if !strings.HasPrefix(strings.ToUpper(f.Protocol), filterProto) {
+				continue
+			}
+		}
 		if matchesIgnore(f) {
 			continue
 		}
@@ -402,6 +434,8 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 			return flows[i].DurationS > flows[j].DurationS
 		case "idle":
 			return flows[i].IdleS < flows[j].IdleS
+		case "protocol":
+			return flows[i].Protocol < flows[j].Protocol
 		default:
 			return flows[i].Bytes > flows[j].Bytes
 		}
@@ -425,15 +459,20 @@ func renderTop(client *http.Client, sortBy string, hideNoise bool) {
 	if prettyPrint { prettyStr = "human" }
 	noiseStr := "visible"
 	if hideNoise { noiseStr = "hidden" }
+	remoteStr := "all"
+	if remoteOnly { remoteStr = "remote-only" }
+	protoStr := "ALL"
+	if filterProto != "" { protoStr = filterProto }
 
-	fmt.Printf("%sMalakocut Top%s - %s | Flows: %s%d/%d%s | Sort: %s%s (%s)%s | Noise: %s | DNS: %v\r\n",
+	fmt.Printf("%sMalakocut Top%s - %s | Flows: %s%d/%d%s | Sort: %s%s%s (%s) | Filter: %s%s, %s%s, noise:%s%s | DNS: %v\r\n",
 		COLOR_BOLD+COLOR_CYAN, COLOR_RESET,
 		time.Now().Format(time.Kitchen),
 		COLOR_GREEN, len(flows), totalFetched, COLOR_RESET,
-		COLOR_YEL, sortBy, prettyStr, COLOR_RESET, noiseStr, resolveDNS)
+		COLOR_YEL, sortBy, COLOR_RESET, prettyStr,
+		COLOR_GREEN, protoStr, remoteStr, noiseStr, COLOR_RESET, resolveDNS)
 	
-	fmt.Printf("Shortcuts: %s?%selp, %sq%suit, %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %sr%sesolve, %sh%suman, %sm%snoise\r\n\r\n",
-		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
+	fmt.Printf("Shortcuts: %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %so%sproto | %sf%silter, %sx%s-remote, %sm%snoise, %sr%sesolve, %sh%suman\r\n\r\n",
+		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	fmt.Print(COLOR_REV)
 	fmt.Printf("%-8s %-*s %-*s %-8s %-20s %10s %8s %10s %10s",
@@ -534,7 +573,9 @@ func renderHelp() {
 	fmt.Printf("%sShortcuts:%s\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Print("  ?         Toggle this help screen\r\n")
 	fmt.Print("  q         Quit to shell\r\n")
-	fmt.Print("  b/p/d/i   Sort by Bytes, Packets, Duration, or Idleness\r\n")
+	fmt.Print("  b/p/d/i/o Sort by Bytes, Packets, Duration, Idleness, or Protocol\r\n")
+	fmt.Print("  f         Cycle Protocol Filter (All, TCP, UDP, ICMP)\r\n")
+	fmt.Print("  x         Toggle Remote-only flows (excludes internal-to-internal)\r\n")
 	fmt.Print("  r         Toggle DNS & ICMP Name Resolution\r\n")
 	fmt.Print("  h         Toggle Human-readable Scaling (K, M, G, etc.)\r\n")
 	fmt.Print("  m         Toggle Noise (Multicast/Broadcast) visibility\r\n")

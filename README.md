@@ -109,9 +109,12 @@ sudo ./malakocut-cli top
 
 **Interactive Shortcuts:**
 - `q`: Quit.
-- `b/p/d/i`: Sort by **B**ytes, **P**ackets, **D**uration, or **I**dleness.
+- `b/p/d/i/o`: Sort by **B**ytes, **P**ackets, **D**uration, **I**dleness, or Pr**o**tocol.
+- `f`: **Cycle Protocol Filter** (All, TCP, UDP, ICMP).
+- `x`: **Toggle Remote-only** (Excludes internal-to-internal traffic).
 - `r`: **Toggle DNS & ICMP Resolution** (Resolves hostnames and ICMP names).
 - `h`: **Toggle Human-readable Scaling** (K, M, G, etc.).
+- `m`: **Toggle Noise** (Multicast/Broadcast) visibility.
 
 ---
 
