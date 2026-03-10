@@ -319,6 +319,17 @@ func showTop() {
 	for {
 		select {
 		case cmd := <-cmdChan:
+			if showHelp || showIgnore {
+				if cmd == 'q' || cmd == 3 {
+					fmt.Print("\r\n")
+					return
+				}
+				showHelp = false
+				showIgnore = false
+				renderTop(client, sortBy, hideNoise, remoteOnly, filterProto)
+				continue
+			}
+
 			switch cmd {
 			case 'q', 3: // 'q' or Ctrl+C
 				fmt.Print("\r\n")
