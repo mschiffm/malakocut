@@ -46,6 +46,7 @@ var (
 type IgnoreRule struct {
 	Type  string
 	Value string
+	Net   *net.IPNet // Pre-parsed CIDR for IP types
 }
 
 func loadIgnoreRules() {
@@ -69,10 +70,19 @@ func loadIgnoreRules() {
 		}
 		parts := strings.SplitN(line, ":", 2)
 		if len(parts) == 2 {
-			newRules = append(newRules, IgnoreRule{
-				Type:  strings.ToLower(strings.TrimSpace(parts[0])),
-				Value: strings.ToLower(strings.TrimSpace(parts[1])),
-			})
+			ruleType := strings.ToLower(strings.TrimSpace(parts[0]))
+			ruleVal := strings.ToLower(strings.TrimSpace(parts[1]))
+			rule := IgnoreRule{
+				Type:  ruleType,
+				Value: ruleVal,
+			}
+			if ruleType == "ip" && strings.Contains(ruleVal, "/") {
+				_, ipnet, err := net.ParseCIDR(ruleVal)
+				if err == nil {
+					rule.Net = ipnet
+				}
+			}
+			newRules = append(newRules, rule)
 		}
 	}
 	ignoreRules = newRules
@@ -114,6 +124,7 @@ func usage() {
 	fmt.Printf("  %stop%s       Interactive live-updating flow visualizer.\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Println("\r\nInteractive shortcuts (top mode):")
 	fmt.Println("  ?         Show help and legend")
+	fmt.Println("  g         Show active ignore/filter rules")
 	fmt.Println("  q         Quit to shell")
 	fmt.Println("  b/p/d/i/o Sort by Bytes, Packets, Duration, Idleness, or Protocol")
 	fmt.Println("  f         Cycle Protocol Filter (All, TCP, UDP, ICMP)")
@@ -283,6 +294,7 @@ func showTop() {
 	client := getClient()
 	sortBy := "bytes"
 	showHelp := false
+	showIgnore := false
 	hideNoise := false
 	remoteOnly := false
 	filterProto := "" // "", "TCP", "UDP", "ICMP"
@@ -313,6 +325,10 @@ func showTop() {
 				return
 			case '?':
 				showHelp = !showHelp
+				showIgnore = false
+			case 'g':
+				showIgnore = !showIgnore
+				showHelp = false
 			case 'm':
 				hideNoise = !hideNoise
 			case 'x':
@@ -331,18 +347,23 @@ func showTop() {
 			case 'b':
 				sortBy = "bytes"
 				showHelp = false
+				showIgnore = false
 			case 'p':
 				sortBy = "packets"
 				showHelp = false
+				showIgnore = false
 			case 'd':
 				sortBy = "duration"
 				showHelp = false
+				showIgnore = false
 			case 'i':
 				sortBy = "idle"
 				showHelp = false
+				showIgnore = false
 			case 'o':
 				sortBy = "protocol"
 				showHelp = false
+				showIgnore = false
 			case 'r':
 				resolveDNS = !resolveDNS
 			case 'h':
@@ -350,11 +371,13 @@ func showTop() {
 			}
 			if showHelp {
 				renderHelp()
+			} else if showIgnore {
+				renderIgnoreList()
 			} else {
 				renderTop(client, sortBy, hideNoise, remoteOnly, filterProto)
 			}
 		case <-ticker.C:
-			if !showHelp {
+			if !showHelp && !showIgnore {
 				renderTop(client, sortBy, hideNoise, remoteOnly, filterProto)
 			}
 		}
@@ -365,14 +388,20 @@ func matchesIgnore(f malakocut.FlowMetadata) bool {
 	for _, rule := range ignoreRules {
 		switch rule.Type {
 		case "ip":
-			if strings.ToLower(f.SrcIP) == rule.Value || strings.ToLower(f.DstIP) == rule.Value {
-				return true
+			if rule.Net != nil {
+				sIP := net.ParseIP(f.SrcIP)
+				dIP := net.ParseIP(f.DstIP)
+				if (sIP != nil && rule.Net.Contains(sIP)) || (dIP != nil && rule.Net.Contains(dIP)) {
+					return true
+				}
+			} else {
+				if strings.ToLower(f.SrcIP) == rule.Value || strings.ToLower(f.DstIP) == rule.Value {
+					return true
+				}
 			}
 		case "port":
-			p, _ := net.LookupPort("tcp", rule.Value) // Simplistic port lookup
-			if p == 0 {
-				fmt.Sscanf(rule.Value, "%d", &p)
-			}
+			var p int
+			fmt.Sscanf(rule.Value, "%d", &p)
 			if f.SrcPort == p || f.DstPort == p {
 				return true
 			}
@@ -381,9 +410,29 @@ func matchesIgnore(f malakocut.FlowMetadata) bool {
 				return true
 			}
 		case "domain":
-			// This would require resolved hostnames, which we do asynchronously.
-			// For now, we match against IP strings if they look like they might be part of a domain
-			// or we can skip domain matching in the CLI for simplicity since the daemon has it.
+			// Wildcard: *.foo.com
+			isWildcard := strings.HasPrefix(rule.Value, "*.")
+			suffix := rule.Value
+			if isWildcard {
+				suffix = strings.TrimPrefix(rule.Value, "*") // keep the dot
+			}
+
+			checkDomain := func(ip string) bool {
+				cacheMu.RLock()
+				host, exists := dnsCache[ip]
+				cacheMu.RUnlock()
+				if !exists || host == ip {
+					return false
+				}
+				host = strings.ToLower(host)
+				if isWildcard {
+					return strings.HasSuffix(host, suffix) || host == strings.TrimPrefix(suffix, ".")
+				}
+				return host == rule.Value
+			}
+			if checkDomain(f.SrcIP) || checkDomain(f.DstIP) {
+				return true
+			}
 		}
 	}
 	return false
@@ -464,14 +513,14 @@ func renderTop(client *http.Client, sortBy string, hideNoise, remoteOnly bool, f
 	protoStr := "ALL"
 	if filterProto != "" { protoStr = filterProto }
 
-	fmt.Printf("%sMalakocut Top%s - %s | Flows: %s%d/%d%s | Sort: %s%s%s (%s) | Filter: %s%s, %s%s, noise:%s%s | DNS: %v\r\n",
+	fmt.Printf("%sMalakocut Top%s - %s | Flows: %s%d/%d%s | Sort: %s%s%s (%s) | Filter: %s%s, %s, noise:%s | DNS: %v\r\n",
 		COLOR_BOLD+COLOR_CYAN, COLOR_RESET,
 		time.Now().Format(time.Kitchen),
 		COLOR_GREEN, len(flows), totalFetched, COLOR_RESET,
 		COLOR_YEL, sortBy, COLOR_RESET, prettyStr,
-		COLOR_GREEN, protoStr, remoteStr, noiseStr, COLOR_RESET, resolveDNS)
+		COLOR_GREEN, protoStr, remoteStr, noiseStr, resolveDNS)
 	
-	fmt.Printf("Shortcuts: %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %so%sproto | %sf%silter, %sx%s-remote, %sm%snoise, %sr%sesolve, %sh%suman\r\n\r\n",
+	fmt.Printf("Shortcuts: %sb%sytes, %sp%sackets, %sd%suration, %si%sdle, %so%sproto | %sf%silter, %sx%s-remote, %sg%signore, %sm%snoise, %sr%sesolve\r\n\r\n",
 		COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET, COLOR_BOLD, COLOR_RESET)
 
 	fmt.Print(COLOR_REV)
@@ -486,7 +535,7 @@ func renderTop(client *http.Client, sortBy string, hideNoise, remoteOnly bool, f
 
 	for i, f := range flows {
 		if i >= maxVisible {
-			fmt.Printf("\r\n%s... and %d more flows (sort by [b/p/d/i] to see more) ...%s", COLOR_YEL, len(flows)-i, COLOR_RESET)
+			fmt.Printf("\r\n%s... and %d more flows (sort by [b/p/d/i/o] to see more) ...%s", COLOR_YEL, len(flows)-i, COLOR_RESET)
 			break
 		}
 		
@@ -572,6 +621,7 @@ func renderHelp() {
 	
 	fmt.Printf("%sShortcuts:%s\r\n", COLOR_BOLD, COLOR_RESET)
 	fmt.Print("  ?         Toggle this help screen\r\n")
+	fmt.Print("  g         Show active ignore/filter rules\r\n")
 	fmt.Print("  q         Quit to shell\r\n")
 	fmt.Print("  b/p/d/i/o Sort by Bytes, Packets, Duration, Idleness, or Protocol\r\n")
 	fmt.Print("  f         Cycle Protocol Filter (All, TCP, UDP, ICMP)\r\n")
@@ -584,6 +634,31 @@ func renderHelp() {
 	fmt.Printf("  %s %-10s Traffic entering from a Public/External IP\r\n", ICON_IN, "Inbound")
 	fmt.Printf("  %s %-10s Traffic leaving to a Public/External IP\r\n", ICON_OUT, "Outbound")
 	fmt.Printf("  %s %-10s Internal-to-Internal traffic (Local/Lateral)\r\n", ICON_LOCAL, "Local")
+
+	fmt.Printf("\r\n%sPress any key (except q) to return to live view...%s\r\n", COLOR_REV, COLOR_RESET)
+}
+
+func renderIgnoreList() {
+	fmt.Print("\033[H\033[2J")
+	fmt.Printf("%sMalakocut Top - Active Ignore/Filter Rules%s\r\n", COLOR_BOLD+COLOR_CYAN, COLOR_RESET)
+	fmt.Printf("Source: %s\r\n\r\n", IGNORE_FILE)
+
+	if len(ignoreRules) == 0 {
+		fmt.Println("No ignore rules configured.")
+	} else {
+		fmt.Print(COLOR_REV)
+		fmt.Printf("%-10s %-40s %-20s", "TYPE", "VALUE", "DETAIL")
+		fmt.Printf("%s\r\n", COLOR_RESET)
+		for _, rule := range ignoreRules {
+			detail := "-"
+			if rule.Net != nil {
+				detail = "CIDR Mask"
+			} else if strings.HasPrefix(rule.Value, "*.") {
+				detail = "Wildcard Domain"
+			}
+			fmt.Printf("%-10s %-40s %-20s\r\n", strings.ToUpper(rule.Type), rule.Value, detail)
+		}
+	}
 
 	fmt.Printf("\r\n%sPress any key (except q) to return to live view...%s\r\n", COLOR_REV, COLOR_RESET)
 }
